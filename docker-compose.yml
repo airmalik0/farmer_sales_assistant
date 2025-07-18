@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: farmer_crm
+      POSTGRES_USER: farmer
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - farmer_network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - farmer_network
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - farmer_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery_worker:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - farmer_network
+    command: celery -A app.core.celery worker --loglevel=info
+
+  bot:
+    build: ./bot
+    environment:
+      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
+      - BACKEND_URL=http://backend:8000
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    volumes:
+      - ./bot:/app
+    networks:
+      - farmer_network
+    command: python main.py
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - farmer_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+
+networks:
+  farmer_network:
+    driver: bridge
