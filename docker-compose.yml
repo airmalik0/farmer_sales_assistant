@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: farmer_crm
+      POSTGRES_USER: farmer
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - farmer_network
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+    networks:
+      - farmer_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  bot:
+    build: ./bot
+    environment:
+      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
+      - BACKEND_URL=http://backend:8000
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    volumes:
+      - ./bot:/app
+    networks:
+      - farmer_network
+    command: python main.py
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - farmer_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+
+networks:
+  farmer_network:
+    driver: bridge
