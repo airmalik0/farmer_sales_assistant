@@ -3,10 +3,10 @@ services:
     image: postgres:15
     environment:
       POSTGRES_DB: farmer_crm
-      POSTGRES_USER: farmer
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres  # Стандартный пользователь (как принято)
+      # POSTGRES_PASSWORD не указываем для локальной разработки
     ports:
-      - "5433:5432"
+      - "5433:5432"  # Используем 5433 чтобы не конфликтовать с локальным PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -17,8 +17,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # В Docker тоже используем стандартного postgres пользователя
+      - DATABASE_URL=postgresql://postgres@postgres:5432/farmer_crm
     env_file:
       - .env
     depends_on:
@@ -32,9 +32,9 @@ services:
   bot:
     build: ./bot
     environment:
-      - DATABASE_URL=postgresql://farmer:password@postgres:5432/farmer_crm
+      # В Docker тоже используем стандартного postgres пользователя
+      - DATABASE_URL=postgresql://postgres@postgres:5432/farmer_crm
       - BACKEND_URL=http://backend:8000
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
     env_file:
       - .env
     depends_on:
@@ -49,12 +49,28 @@ services:
     build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - VITE_API_BASE_URL=http://backend:8000/api/v1
     volumes:
       - ./frontend:/app
       - /app/node_modules
     networks:
       - farmer_network
     command: npm run dev
+
+  # Добавляем nginx для продакшена (опционально)
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - farmer_network
+    profiles:
+      - production  # Запускается только с профилем production
 
 volumes:
   postgres_data:

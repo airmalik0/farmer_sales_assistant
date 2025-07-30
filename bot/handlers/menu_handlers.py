@@ -65,9 +65,9 @@ class MenuHandlers:
                     else:
                         text = f"📝 <b>Стандартное приветствие:</b>\n\n{greeting_data['greeting_text']}\n\n<i>Кастомное приветствие не установлено</i>"
                 else:
-                    text = "❌ Ошибка при получении приветствия"
+                    text = "❌ <b>Ошибка при получении приветствия</b>\n\n💡 Проверьте подключение к серверу и повторите попытку"
             except Exception as e:
-                text = f"❌ Ошибка: {str(e)}"
+                text = f"❌ <b>Техническая ошибка</b>\n\n🔍 <b>Детали:</b> {str(e)}\n\n💡 <b>Что делать:</b> Обратитесь к администратору"
             
             await callback.message.edit_text(text, reply_markup=get_back_keyboard())
 
@@ -76,24 +76,34 @@ class MenuHandlers:
             try:
                 result = await self.message_handler.api_client.validate_broadcast_clients()
                 if result:
-                    text = f"🔍 <b>Статус клиентов:</b>\n\n"
-                    text += f"👥 Всего клиентов: {result['total_clients']}\n"
-                    text += f"✅ Готовы к рассылке: {result['clients_ready']}\n"
-                    
-                    if result['clients_without_names']:
-                        text += f"❌ Без имени: {len(result['clients_without_names'])}\n"
-                    
-                    if result['clients_with_unapproved_names']:
-                        text += f"⏳ Имена не одобрены: {len(result['clients_with_unapproved_names'])}\n"
-                    
-                    if result['can_broadcast']:
-                        text += "\n✅ <b>Рассылка возможна!</b>"
+                    # Проверяем, есть ли ошибка от API
+                    if result.get("success") is False:
+                        # Показываем понятное сообщение об ошибке
+                        text = result.get("message", "❌ Ошибка при проверке клиентов")
                     else:
-                        text += "\n❌ <b>Рассылка невозможна</b>\nНеобходимо одобрить всех клиентов"
+                        # Успешная проверка - формируем отчет
+                        text = f"🔍 <b>Статус клиентов:</b>\n\n"
+                        text += f"👥 Всего клиентов: {result.get('total_clients', 0)}\n"
+                        text += f"✅ Готовы к рассылке: {result.get('clients_ready', 0)}\n"
+                        
+                        clients_without_names = result.get('clients_without_names', [])
+                        clients_with_unapproved_names = result.get('clients_with_unapproved_names', [])
+                        
+                        if clients_without_names:
+                            text += f"❌ Без имени: {len(clients_without_names)}\n"
+                        
+                        if clients_with_unapproved_names:
+                            text += f"⏳ Имена не одобрены: {len(clients_with_unapproved_names)}\n"
+                        
+                        if result.get('can_broadcast', False):
+                            text += "\n✅ <b>Рассылка возможна!</b>"
+                        else:
+                            text += "\n❌ <b>Рассылка невозможна</b>\n"
+                            text += "💡 Необходимо одобрить всех клиентов в веб-панели"
                 else:
-                    text = "❌ Ошибка при проверке клиентов"
+                    text = "❌ <b>Ошибка при проверке клиентов</b>\n\n💡 Проверьте подключение к серверу"
             except Exception as e:
-                text = f"❌ Ошибка: {str(e)}"
+                text = f"❌ <b>Техническая ошибка</b>\n\n🔍 <b>Детали:</b> {str(e)}\n\n💡 <b>Что делать:</b> Обратитесь к администратору"
             
             await callback.message.edit_text(text, reply_markup=get_back_keyboard())
 
@@ -209,7 +219,8 @@ class MenuHandlers:
             try:
                 greeting_data = await self.message_handler.api_client.get_greeting()
                 greeting_text = greeting_data.get("greeting_text", "Добрый день, [Имя Клиента], как вы?") if greeting_data else "Добрый день, [Имя Клиента], как вы?"
-            except:
+            except Exception as e:
+                print(f"Ошибка при получении приветствия для предпросмотра: {e}")
                 greeting_text = "Добрый день, [Имя Клиента], как вы?"
             
             preview_text += f"👋 <b>Приветствие:</b>\n{greeting_text}\n\n"
@@ -260,10 +271,12 @@ class MenuHandlers:
                 if result and result.get("success", True):
                     text = f"✅ <b>Рассылка отправлена!</b>\n\n{result.get('message', 'Рассылка завершена успешно')}"
                 else:
-                    text = f"❌ <b>Ошибка рассылки</b>\n\n{result.get('message', 'Неизвестная ошибка')}"
+                    # Используем структурированное сообщение об ошибке от API
+                    error_message = result.get('message', 'Неизвестная ошибка рассылки') if result else 'Не удалось выполнить рассылку'
+                    text = error_message
                     
             except Exception as e:
-                text = f"❌ <b>Ошибка:</b> {str(e)}"
+                text = f"❌ <b>Техническая ошибка</b>\n\n🔍 <b>Детали:</b> {str(e)}\n\n💡 <b>Что делать:</b> Обратитесь к администратору"
             
             await callback.message.edit_text(text, reply_markup=get_back_keyboard())
             await state.clear()
@@ -290,9 +303,9 @@ class MenuHandlers:
                 if result:
                     text = f"✅ <b>Приветствие сохранено!</b>\n\nНовое приветствие: {data['greeting']}"
                 else:
-                    text = "❌ Ошибка при сохранении приветствия"
+                    text = "❌ <b>Ошибка при сохранении приветствия</b>\n\n💡 Проверьте подключение к серверу и повторите попытку"
             except Exception as e:
-                text = f"❌ Ошибка: {str(e)}"
+                text = f"❌ <b>Техническая ошибка</b>\n\n🔍 <b>Детали:</b> {str(e)}\n\n💡 <b>Что делать:</b> Обратитесь к администратору"
             
             await callback.message.edit_text(text, reply_markup=get_back_keyboard())
             await state.clear()

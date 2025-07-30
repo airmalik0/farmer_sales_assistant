@@ -102,13 +102,24 @@ class GoogleSheetsService:
     def __init__(self):
         self.service = None
         self.spreadsheet_id = settings.google_sheets_spreadsheet_id
-        self.range_name = settings.google_sheets_range
+        self.range_name = settings.google_sheets_range or "Sheet1!A:Z"
+        
+        # Проверяем наличие необходимых настроек
+        if not self.spreadsheet_id or self.spreadsheet_id == "your_spreadsheet_id_here":
+            logger.warning("Google Sheets Spreadsheet ID не настроен. Сервис Google Sheets будет отключен.")
+            return
+            
         self._connect()
     
     def _connect(self):
         """Подключение к Google Sheets API"""
         try:
             creds = None
+            
+            # Проверяем, что путь к файлу задан
+            if not settings.google_sheets_credentials_file:
+                logger.warning("Путь к файлу учетных данных Google Sheets не задан в переменных окружения")
+                return
             
             # Проверяем существование файла с учетными данными
             if os.path.exists(settings.google_sheets_credentials_file):

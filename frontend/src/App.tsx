@@ -198,7 +198,11 @@ function App() {
 
     try {
       // Отправляем сообщение через Telegram API
-      await telegramApi.sendMessage(currentSelectedClient.id, content, contentType);
+      await telegramApi.sendMessage({
+        client_id: currentSelectedClient.id,
+        content: content,
+        content_type: contentType
+      });
 
       // Перезагружаем сообщения и клиентов после отправки
       await loadMessages(currentSelectedClient.id);

@@ -35,7 +35,10 @@ export const BroadcastModal = ({ isOpen, onClose, onSuccess }: BroadcastModalPro
     setLoading(true);
     setError('');
     try {
-      const response = await telegramApi.validateBroadcast();
+      const response = await telegramApi.validateBroadcast({
+        content: '',
+        content_type: 'text'
+      });
       setValidation(response.data);
       
       // Переходим к составлению только если действительно нет проблем
@@ -117,7 +120,11 @@ export const BroadcastModal = ({ isOpen, onClose, onSuccess }: BroadcastModalPro
     setStep('sending');
     setError('');
     try {
-      await telegramApi.broadcast(message.trim(), 'text', includeGreeting);
+      await telegramApi.broadcast({
+        content: message.trim(),
+        content_type: 'text',
+        include_greeting: includeGreeting
+      });
       onSuccess?.();
       onClose();
       setMessage('');

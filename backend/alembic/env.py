@@ -31,7 +31,30 @@ target_metadata = Base.metadata
 
 
 def get_url():
-    return os.getenv("DATABASE_URL", "postgresql://farmer:password@localhost:5432/farmer_crm")
+    # Сначала проверяем переменную окружения
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
+    
+    # Если переменная не установлена, пытаемся определить окружение
+    # Проверяем, работаем ли мы локально (есть ли локальный PostgreSQL)
+    try:
+        import psycopg2
+        # Пытаемся подключиться с локальными креденциалами
+        test_conn = psycopg2.connect(
+            host="localhost",
+            port=5432,
+            user="postgres",
+            password="postgres",
+            database="farmer_crm"
+        )
+        test_conn.close()
+        print("🔍 Обнаружено локальное окружение, использую postgres:postgres")
+        return "postgresql://postgres:postgres@localhost:5432/farmer_crm"
+    except:
+        # Если не удалось подключиться с postgres:postgres, используем farmer
+        print("🐳 Используем настройки Docker (farmer:password)")
+        return "postgresql://farmer:password@localhost:5432/farmer_crm"
 
 
 def run_migrations_offline() -> None:

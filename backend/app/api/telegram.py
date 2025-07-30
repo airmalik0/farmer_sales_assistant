@@ -2,19 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from ..core.database import get_db
+from ..core.exceptions import NoClientsError, ClientsNotApprovedError, APIErrorResponse
+from ..core.config import settings
 from ..services.client_service import ClientService
 from ..services.message_service import MessageService
 from ..services.settings_service import SettingsService
 from ..schemas.message import MessageCreate
 from .websocket import notify_new_message
 import httpx
-import os
 import asyncio
 
 router = APIRouter()
 
-# Получаем токен бота из переменных окружения
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Получаем токен бота из настроек
+TELEGRAM_BOT_TOKEN = settings.telegram_bot_token
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 
 
@@ -148,7 +149,7 @@ async def send_telegram_content(chat_id: int, content_type: str, content: str):
     return None
 
 
-@router.post("/send-message")
+@router.post("/send")
 async def send_message_to_client(
     request: SendMessageRequest,
     db: Session = Depends(get_db)
@@ -203,13 +204,20 @@ class BroadcastValidationResponse(BaseModel):
     can_broadcast: bool
 
 
-@router.get("/broadcast/validate")
+@router.post("/validate-broadcast")
 def validate_broadcast_clients(db: Session = Depends(get_db)):
     """Проверяет клиентов перед рассылкой"""
     clients = ClientService.get_clients(db)
     
     if not clients:
-        raise HTTPException(status_code=404, detail="Нет клиентов для рассылки")
+        # Возвращаем нормальный ответ, а не 404 ошибку
+        return BroadcastValidationResponse(
+            clients_without_names=[],
+            clients_with_unapproved_names=[],
+            total_clients=0,
+            clients_ready=0,
+            can_broadcast=False
+        )
     
     clients_without_names = []
     clients_with_unapproved_names = []
@@ -256,108 +264,138 @@ async def broadcast_message(
     db: Session = Depends(get_db)
 ):
     """Массовая рассылка всем клиентам"""
-    # Проверяем валидацию перед рассылкой
-    validation = validate_broadcast_clients(db)
-    if not validation.can_broadcast:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Невозможно начать рассылку. Клиентов без имени: {len(validation.clients_without_names)}, с неодобренными именами: {len(validation.clients_with_unapproved_names)}"
-        )
-    
-    # Получаем всех клиентов
-    clients = ClientService.get_clients(db)
-    
-    if not clients:
-        raise HTTPException(status_code=404, detail="Нет клиентов для рассылки")
-    
-    sent_count = 0
-    failed_count = 0
-    
-    for client in clients:
-        try:
-            # Персонализированное приветствие (если включено)
-            if request.include_greeting:
-                # Получаем эффективное приветствие из БД
-                effective_greeting = SettingsService.get_effective_greeting(db)
-                
-                # Заменяем переменные в приветствии
-                greeting = replace_greeting_variables(
-                    effective_greeting,
-                    client.first_name or "",
-                    client.last_name or ""
+    try:
+        # Проверяем валидацию перед рассылкой
+        validation = validate_broadcast_clients(db)
+        
+        # Проверяем общее количество клиентов
+        if validation.total_clients == 0:
+            raise HTTPException(
+                status_code=422,
+                detail=APIErrorResponse.no_clients_error()
+            )
+        
+        # Проверяем готовность клиентов к рассылке
+        if not validation.can_broadcast:
+            raise HTTPException(
+                status_code=400,
+                detail=APIErrorResponse.clients_not_approved_error(
+                    len(validation.clients_with_unapproved_names),
+                    len(validation.clients_without_names)
                 )
+            )
+        
+        # Получаем всех клиентов (двойная проверка для безопасности)
+        clients = ClientService.get_clients(db)
+        
+        if not clients:
+            raise HTTPException(
+                status_code=422,
+                detail=APIErrorResponse.no_clients_error()
+            )
+        
+        sent_count = 0
+        failed_count = 0
+        
+        for client in clients:
+            try:
+                # Персонализированное приветствие (если включено)
+                if request.include_greeting:
+                    # Получаем эффективное приветствие из БД
+                    effective_greeting = SettingsService.get_effective_greeting(db)
+                    
+                    # Заменяем переменные в приветствии
+                    greeting = replace_greeting_variables(
+                        effective_greeting,
+                        client.first_name or "",
+                        client.last_name or ""
+                    )
+                    
+                    # Сохраняем приветствие в базе
+                    greeting_data = MessageCreate(
+                        client_id=client.id,
+                        sender="farmer",
+                        content_type="text",
+                        content=greeting
+                    )
+                    greeting_message = MessageService.create_message(db, greeting_data)
+                    
+                    # Отправляем приветствие
+                    greeting_response = await send_telegram_message(client.telegram_id, greeting)
+                    
+                    # Уведомляем фронтенд о приветствии
+                    await notify_new_message({
+                        "id": greeting_message.id,
+                        "client_id": greeting_message.client_id,
+                        "sender": greeting_message.sender.value,
+                        "content_type": greeting_message.content_type,
+                        "content": greeting_message.content,
+                        "timestamp": greeting_message.timestamp.isoformat()
+                    })
+                    
+                    # Небольшая задержка между приветствием и основным сообщением
+                    await asyncio.sleep(0.1)
                 
-                # Сохраняем приветствие в базе
-                greeting_data = MessageCreate(
+                # Основное сообщение - сохраняем в базе
+                message_data = MessageCreate(
                     client_id=client.id,
                     sender="farmer",
-                    content_type="text",
-                    content=greeting
+                    content_type=request.content_type,
+                    content=request.content
                 )
-                greeting_message = MessageService.create_message(db, greeting_data)
+                message = MessageService.create_message(db, message_data)
                 
-                # Отправляем приветствие
-                greeting_response = await send_telegram_message(client.telegram_id, greeting)
+                # Отправляем основное сообщение
+                telegram_response = await send_telegram_content(
+                    chat_id=client.telegram_id,
+                    content_type=request.content_type,
+                    content=request.content
+                )
                 
-                # Уведомляем фронтенд о приветствии
+                # Уведомляем фронтенд об основном сообщении
                 await notify_new_message({
-                    "id": greeting_message.id,
-                    "client_id": greeting_message.client_id,
-                    "sender": greeting_message.sender.value,
-                    "content_type": greeting_message.content_type,
-                    "content": greeting_message.content,
-                    "timestamp": greeting_message.timestamp.isoformat()
+                    "id": message.id,
+                    "client_id": message.client_id,
+                    "sender": message.sender.value,
+                    "content_type": message.content_type,
+                    "content": message.content,
+                    "timestamp": message.timestamp.isoformat()
                 })
                 
-                # Небольшая задержка между приветствием и основным сообщением
+                if telegram_response and telegram_response.get("ok"):
+                    sent_count += 1
+                else:
+                    failed_count += 1
+                    print(f"Не удалось отправить сообщение клиенту {client.id}")
+                
+                # Задержка между сообщениями
                 await asyncio.sleep(0.1)
-            
-            # Основное сообщение - сохраняем в базе
-            message_data = MessageCreate(
-                client_id=client.id,
-                sender="farmer",
-                content_type=request.content_type,
-                content=request.content
-            )
-            message = MessageService.create_message(db, message_data)
-            
-            # Отправляем основное сообщение
-            telegram_response = await send_telegram_content(
-                chat_id=client.telegram_id,
-                content_type=request.content_type,
-                content=request.content
-            )
-            
-            # Уведомляем фронтенд об основном сообщении
-            await notify_new_message({
-                "id": message.id,
-                "client_id": message.client_id,
-                "sender": message.sender.value,
-                "content_type": message.content_type,
-                "content": message.content,
-                "timestamp": message.timestamp.isoformat()
-            })
-            
-            if telegram_response and telegram_response.get("ok"):
-                sent_count += 1
-            else:
+                
+            except Exception as e:
+                print(f"Ошибка при отправке сообщения клиенту {client.id}: {e}")
                 failed_count += 1
-                print(f"Не удалось отправить сообщение клиенту {client.id}")
-            
-            # Задержка между сообщениями
-            await asyncio.sleep(0.1)
-            
-        except Exception as e:
-            print(f"Ошибка при отправке сообщения клиенту {client.id}: {e}")
-            failed_count += 1
+        
+        return {
+            "success": True,
+            "message": f"Рассылка завершена. Отправлено: {sent_count}, не удалось: {failed_count}",
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "total_clients": len(clients)
+        }
     
-    return {
-        "success": True,
-        "message": f"Рассылка завершена. Отправлено: {sent_count}, не удалось: {failed_count}",
-        "sent_count": sent_count,
-        "failed_count": failed_count,
-        "total_clients": len(clients)
-    }
+    except HTTPException:
+        # Перебрасываем HTTP исключения как есть
+        raise
+    except Exception as e:
+        print(f"Критическая ошибка в broadcast_message: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=APIErrorResponse.create_error_response(
+                "BROADCAST_FAILED",
+                f"Не удалось выполнить рассылку: {str(e)}",
+                {"suggestion": "Проверьте логи сервера и повторите попытку"}
+            )
+        )
 
 
 @router.get("/media/{file_id}")

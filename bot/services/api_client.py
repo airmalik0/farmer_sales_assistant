@@ -79,21 +79,9 @@ class APIClient:
             
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code == 400:
-                # Ошибка валидации - рассылка заблокирована
-                error_data = response.json()
-                return {
-                    "success": False,
-                    "error": "validation_failed",
-                    "message": f"❌ Рассылка заблокирована!\n\n{error_data.get('detail', 'Не все имена клиентов одобрены для рассылки.')}\n\n💡 Перейдите в веб-панель для одобрения имен клиентов."
-                }
             else:
-                # Другие ошибки
-                return {
-                    "success": False,
-                    "error": "api_error",
-                    "message": f"❌ Ошибка сервера: {response.status_code}"
-                }
+                # Обрабатываем структурированные ошибки API
+                return self._handle_api_error(response)
                 
         except Exception as e:
             print(f"Ошибка при рассылке через API: {e}")
@@ -108,22 +96,127 @@ class APIClient:
     async def validate_broadcast_clients(self) -> Optional[Dict[Any, Any]]:
         """Проверить готовность клиентов к рассылке"""
         try:
-            response = await self.client.get(f"{self.base_url}/api/v1/telegram/broadcast/validate")
+            response = await self.client.post(f"{self.base_url}/api/v1/telegram/validate-broadcast")
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code == 404:
-                return {
-                    "total_clients": 0,
-                    "clients_ready": 0,
-                    "clients_without_names": [],
-                    "clients_with_unapproved_names": [],
-                    "can_broadcast": False
-                }
+            else:
+                # Обрабатываем ошибки валидации
+                return self._handle_api_error(response)
                 
         except Exception as e:
             print(f"Ошибка при проверке клиентов: {e}")
+            return {
+                "total_clients": 0,
+                "clients_ready": 0,
+                "clients_without_names": [],
+                "clients_with_unapproved_names": [],
+                "can_broadcast": False
+            }
+    
+    def _handle_api_error(self, response) -> Dict[str, Any]:
+        """Обрабатывает ошибки API и возвращает понятные сообщения"""
+        try:
+            error_data = response.json()
+            
+            # Если это структурированная ошибка
+            if isinstance(error_data, dict) and "error" in error_data:
+                error_info = error_data["error"]
+                error_code = error_info.get("code", "UNKNOWN")
+                error_message = error_info.get("message", "Неизвестная ошибка")
+                error_details = error_info.get("details", {})
+                
+                # Создаем понятные сообщения для пользователя
+                user_message = self._create_user_friendly_message(error_code, error_message, error_details)
+                
+                return {
+                    "success": False,
+                    "error": error_code.lower(),
+                    "message": user_message
+                }
+            
+            # Если это простая ошибка с detail
+            elif isinstance(error_data, dict) and "detail" in error_data:
+                detail = error_data["detail"]
+                
+                # Если detail тоже структурированная ошибка
+                if isinstance(detail, dict) and "error" in detail:
+                    error_info = detail["error"]
+                    error_code = error_info.get("code", "UNKNOWN")
+                    error_message = error_info.get("message", "Неизвестная ошибка")
+                    error_details = error_info.get("details", {})
+                    
+                    user_message = self._create_user_friendly_message(error_code, error_message, error_details)
+                    
+                    return {
+                        "success": False,
+                        "error": error_code.lower(),
+                        "message": user_message
+                    }
+                else:
+                    # Простое текстовое сообщение
+                    return {
+                        "success": False,
+                        "error": "api_error",
+                        "message": f"❌ Ошибка: {detail}"
+                    }
+            
+        except Exception as e:
+            print(f"Ошибка при обработке ответа API: {e}")
         
-        return None
+        # Fallback для неструктурированных ошибок
+        return {
+            "success": False,
+            "error": "api_error",
+            "message": f"❌ Ошибка сервера (код: {response.status_code})"
+        }
+    
+    def _create_user_friendly_message(self, error_code: str, error_message: str, error_details: dict) -> str:
+        """Создает понятное сообщение для пользователя на основе кода ошибки"""
+        
+        if error_code == "NO_CLIENTS":
+            return (
+                "❌ <b>Рассылка невозможна</b>\n\n"
+                "🔍 <b>Причина:</b> В системе нет зарегистрированных клиентов\n\n"
+                "💡 <b>Что делать:</b>\n"
+                "• Клиенты регистрируются автоматически при первом сообщении боту\n"
+                "• Пригласите пользователей написать боту\n"
+                "• Или подождите, пока клиенты сами обратятся"
+            )
+        
+        elif error_code == "CLIENTS_NOT_APPROVED":
+            unapproved_count = error_details.get("clients_with_unapproved_names", 0)
+            without_names_count = error_details.get("clients_without_names", 0)
+            
+            issues = []
+            if without_names_count > 0:
+                issues.append(f"• {without_names_count} клиент(ов) без имени")
+            if unapproved_count > 0:
+                issues.append(f"• {unapproved_count} клиент(ов) с неодобренными именами")
+            
+            return (
+                "❌ <b>Рассылка заблокирована</b>\n\n"
+                "🔍 <b>Проблемы:</b>\n" + "\n".join(issues) + "\n\n"
+                "💡 <b>Что делать:</b>\n"
+                "• Перейдите в веб-панель управления\n"
+                "• Одобрите имена всех клиентов\n"
+                "• После этого рассылка станет доступна"
+            )
+        
+        elif error_code == "BROADCAST_FAILED":
+            suggestion = error_details.get("suggestion", "Повторите попытку позже")
+            return (
+                "❌ <b>Ошибка рассылки</b>\n\n"
+                f"🔍 <b>Причина:</b> {error_message}\n\n"
+                f"💡 <b>Рекомендация:</b> {suggestion}"
+            )
+        
+        else:
+            # Общий формат для неизвестных ошибок
+            suggestion = error_details.get("suggestion", "Обратитесь к администратору")
+            return (
+                f"❌ <b>Ошибка:</b> {error_message}\n\n"
+                f"💡 <b>Рекомендация:</b> {suggestion}"
+            )
 
     async def get_greeting(self) -> Optional[Dict[Any, Any]]:
         """Получить текущее приветствие"""
