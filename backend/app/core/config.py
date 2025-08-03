@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "sqlite:///./farmer_sales.db"
+    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./farmer_sales.db")
     
     # Telegram (только для админа)
     telegram_bot_token: str = ""

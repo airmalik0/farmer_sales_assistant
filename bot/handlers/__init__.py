@@ -1,3 +1,3 @@
-from .message_handlers import setup_handlers
+from .admin_handlers import setup_admin_handlers
 
-__all__ = ["setup_handlers"]
+__all__ = ["setup_admin_handlers"]

@@ -2,11 +2,11 @@ from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.filters import Command
 import httpx
-import os
+
+from config import BACKEND_URL, FARMER_TELEGRAM_ID
 
 admin_router = Router()
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
-FARMER_ID = int(os.getenv("FARMER_TELEGRAM_ID"))
+FARMER_ID = FARMER_TELEGRAM_ID
 
 def setup_admin_handlers(dp):
     dp.include_router(admin_router)
