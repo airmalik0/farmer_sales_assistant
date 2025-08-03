@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Edit2, Save, X, User, Phone, MapPin, Cake, UserCheck, FileTextIcon } from 'lucide-react';
+import { Edit2, Save, X, User, Phone, MapPin, Cake, UserCheck, FileTextIcon, Building, Briefcase } from 'lucide-react';
 import { Client, DossierManualUpdate } from '../types';
 import { dossierApi } from '../services/api';
 
@@ -19,7 +19,9 @@ export const DossierEditForm = ({
     current_location: '',
     birthday: '',
     gender: '',
-    notes: '',
+    client_type: '',
+    personal_notes: '',
+    business_profile: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -32,7 +34,9 @@ export const DossierEditForm = ({
       current_location: clientInfo.current_location || '',
       birthday: clientInfo.birthday || '',
       gender: clientInfo.gender || '',
-      notes: clientInfo.notes || '',
+      client_type: clientInfo.client_type || '',
+      personal_notes: clientInfo.personal_notes || '',
+      business_profile: clientInfo.business_profile || '',
     });
   }, [client]);
 
@@ -45,6 +49,10 @@ export const DossierEditForm = ({
 
     if (formData.gender && !['male', 'female'].includes(formData.gender)) {
       newErrors.gender = 'Пол должен быть "male" или "female"';
+    }
+
+    if (formData.client_type && !['private', 'reseller', 'broker', 'dealer', 'transporter'].includes(formData.client_type)) {
+      newErrors.client_type = 'Неверный тип клиента';
     }
 
     setErrors(newErrors);
@@ -116,10 +124,12 @@ export const DossierEditForm = ({
       current_location: MapPin,
       birthday: Cake,
       gender: UserCheck,
-      notes: FileTextIcon,
+      client_type: Building,
+      personal_notes: User,
+      business_profile: Briefcase,
     };
     const IconComponent = icons[field] || User;
-    return <IconComponent className="w-4 h-4 text-neutral-400" />;
+    return <IconComponent className="w-4 h-4" />;
   };
 
   return (
@@ -231,26 +241,77 @@ export const DossierEditForm = ({
           )}
         </div>
 
-        {/* Заметки */}
+        {/* Тип клиента */}
         <div>
           <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
-            {getFieldIcon('notes')}
-            <span className="ml-2">Заметки</span>
-            {isFieldManuallyModified('notes') && (
+            {getFieldIcon('client_type')}
+            <span className="ml-2">Тип клиента</span>
+            {isFieldManuallyModified('client_type') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Изменено вручную
+              </span>
+            )}
+          </label>
+          <select
+            value={formData.client_type || ''}
+            onChange={(e) => handleChange('client_type', e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          >
+            <option value="">Не указан</option>
+            <option value="private">Частное лицо</option>
+            <option value="reseller">Перепродавец</option>
+            <option value="broker">Брокер</option>
+            <option value="dealer">Дилер</option>
+            <option value="transporter">Перевозчик</option>
+          </select>
+          {errors.client_type && (
+            <p className="mt-1 text-xs text-red-600">{errors.client_type}</p>
+          )}
+        </div>
+
+        {/* Личные заметки */}
+        <div>
+          <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
+            {getFieldIcon('personal_notes')}
+            <span className="ml-2">Личные заметки</span>
+            {isFieldManuallyModified('personal_notes') && (
               <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 Изменено вручную
               </span>
             )}
           </label>
           <textarea
-            value={formData.notes || ''}
-            onChange={(e) => handleChange('notes', e.target.value)}
+            value={formData.personal_notes || ''}
+            onChange={(e) => handleChange('personal_notes', e.target.value)}
             rows={4}
             className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             placeholder="Дополнительная информация о клиенте..."
           />
-          {errors.notes && (
-            <p className="mt-1 text-xs text-red-600">{errors.notes}</p>
+          {errors.personal_notes && (
+            <p className="mt-1 text-xs text-red-600">{errors.personal_notes}</p>
+          )}
+        </div>
+
+        {/* Бизнес-профиль */}
+        <div>
+          <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
+            {getFieldIcon('business_profile')}
+            <span className="ml-2">Бизнес-профиль</span>
+            {isFieldManuallyModified('business_profile') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Изменено вручную
+              </span>
+            )}
+          </label>
+          <textarea
+            value={formData.business_profile || ''}
+            onChange={(e) => handleChange('business_profile', e.target.value)}
+            rows={4}
+            className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            placeholder="Дополнительная информация о бизнесе клиента..."
+          />
+          {errors.business_profile && (
+            <p className="mt-1 text-xs text-red-600">{errors.business_profile}</p>
           )}
         </div>
       </div>

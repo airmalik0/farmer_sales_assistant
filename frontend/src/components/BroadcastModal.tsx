@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Send, AlertTriangle, Users, CheckCircle, Settings, Eye, Trash2, Save } from 'lucide-react';
-import { telegramApi, settingsApi } from '../services/api';
+import { pactApi, settingsApi } from '../services/api';
 import { BroadcastValidation, GreetingResponse, GreetingPreview } from '../types';
 
 interface BroadcastModalProps {
@@ -35,7 +35,7 @@ export const BroadcastModal = ({ isOpen, onClose, onSuccess }: BroadcastModalPro
     setLoading(true);
     setError('');
     try {
-      const response = await telegramApi.validateBroadcast({
+      const response = await pactApi.validateBroadcast({
         content: '',
         content_type: 'text'
       });
@@ -120,7 +120,7 @@ export const BroadcastModal = ({ isOpen, onClose, onSuccess }: BroadcastModalPro
     setStep('sending');
     setError('');
     try {
-      await telegramApi.broadcast({
+      await pactApi.broadcast({
         content: message.trim(),
         content_type: 'text',
         include_greeting: includeGreeting
@@ -198,330 +198,256 @@ export const BroadcastModal = ({ isOpen, onClose, onSuccess }: BroadcastModalPro
                     {validation.clients_ready}
                   </p>
                 </div>
+                
                 <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                   <div className="flex items-center">
                     <AlertTriangle className="w-5 h-5 text-orange-600 mr-2" />
                     <span className="text-sm font-medium text-orange-800">
-                      Без имени
+                      Неодобренные имена
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-orange-900 mt-2">
-                    {validation.clients_without_names.length}
+                    {validation.clients_with_unapproved_names.length}
                   </p>
                 </div>
+                
                 <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                   <div className="flex items-center">
                     <X className="w-5 h-5 text-red-600 mr-2" />
                     <span className="text-sm font-medium text-red-800">
-                      Не одобрены
+                      Без имен
                     </span>
                   </div>
                   <p className="text-2xl font-bold text-red-900 mt-2">
-                    {validation.clients_with_unapproved_names.length}
+                    {validation.clients_without_names.length}
                   </p>
                 </div>
               </div>
 
-              {/* Список клиентов без имени */}
-              {validation.clients_without_names.length > 0 && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <h3 className="font-medium text-orange-900 mb-3 flex items-center">
-                    <Users className="w-4 h-4 mr-2" />
-                    Клиенты без имени
-                  </h3>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {validation.clients_without_names.map((client) => (
-                      <div key={client.id} className="flex items-center justify-between bg-white p-2 rounded border">
-                        <span className="text-sm text-neutral-700">
-                          {client.username ? `@${client.username}` : `ID: ${client.telegram_id}`}
-                        </span>
-                        <span className="text-xs text-neutral-500">
-                          Требует имя
-                        </span>
+              {/* Проблемы с клиентами */}
+              {(validation.clients_without_names.length > 0 || validation.clients_with_unapproved_names.length > 0) && (
+                <div className="space-y-4">
+                  {validation.clients_without_names.length > 0 && (
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                      <h3 className="text-red-800 font-medium mb-3">
+                        Клиенты без имен ({validation.clients_without_names.length})
+                      </h3>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {validation.clients_without_names.map((client) => (
+                          <div key={client.id} className="flex items-center justify-between bg-red-100 p-2 rounded">
+                            <span className="text-red-900 text-sm">
+                              {client.provider === 'whatsapp' ? '📱' : '✈️'} {client.sender_external_id}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <p className="text-sm text-orange-700 mt-3">
-                    Эти клиенты не получат персонализированное приветствие. 
-                    Добавьте им имена.
-                  </p>
-                </div>
-              )}
+                    </div>
+                  )}
 
-              {/* Список клиентов с неодобренными именами */}
-              {validation.clients_with_unapproved_names.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="font-medium text-red-900 mb-3 flex items-center">
-                    <AlertTriangle className="w-4 h-4 mr-2" />
-                    Клиенты с неодобренными именами
-                  </h3>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {validation.clients_with_unapproved_names.map((client) => (
-                      <div key={client.id} className="flex items-center justify-between bg-white p-2 rounded border">
-                        <span className="text-sm text-neutral-700">
-                          {client.first_name} {client.last_name}
-                          {client.username && ` (@${client.username})`}
-                        </span>
-                        <span className="text-xs text-red-600">
-                          Требует одобрения
-                        </span>
+                  {validation.clients_with_unapproved_names.length > 0 && (
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <h3 className="text-orange-800 font-medium mb-3">
+                        Клиенты с неодобренными именами ({validation.clients_with_unapproved_names.length})
+                      </h3>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {validation.clients_with_unapproved_names.map((client) => (
+                          <div key={client.id} className="flex items-center justify-between bg-orange-100 p-2 rounded">
+                            <span className="text-orange-900 text-sm">
+                              {client.provider === 'whatsapp' ? '📱' : '✈️'} {client.name || client.sender_external_id}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Кнопки */}
+              <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
+                <button
+                  onClick={() => setStep('greeting')}
+                  className="flex items-center gap-2 px-4 py-2 text-neutral-600 hover:text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  Настроить приветствие
+                </button>
+                
+                {validation.can_broadcast && (
+                  <button
+                    onClick={() => setStep('compose')}
+                    className="flex items-center gap-2 px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                    Продолжить ({validation.clients_ready} клиентов)
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : step === 'greeting' ? (
+            <div className="space-y-6">
+              {/* Текущее приветствие */}
+              {currentGreeting && (
+                <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium text-neutral-900">
+                      Текущее приветствие
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        currentGreeting.enabled 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {currentGreeting.enabled ? 'Включено' : 'Отключено'}
+                      </span>
+                      <button
+                        onClick={clearGreeting}
+                        disabled={greetingLoading}
+                        className="text-red-600 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Удалить приветствие"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-sm text-red-700 mt-3">
-                    Эти клиенты имеют имена, но они не одобрены для рассылки. 
-                    Одобрите их имена в карточках клиентов.
+                  <p className="text-neutral-700 whitespace-pre-wrap">
+                    {currentGreeting.greeting_text}
                   </p>
                 </div>
               )}
 
-              {/* Блок с информацией о блокировке */}
-              {!validation.can_broadcast && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center mb-2">
-                    <X className="w-5 h-5 text-red-600 mr-2" />
-                    <span className="font-medium text-red-900">Рассылка заблокирована</span>
+              {/* Редактирование приветствия */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-neutral-900">
+                  {currentGreeting ? 'Изменить приветствие' : 'Создать приветствие'}
+                </h3>
+                
+                <textarea
+                  value={editingGreeting}
+                  onChange={(e) => {
+                    setEditingGreeting(e.target.value);
+                    previewGreeting(e.target.value);
+                  }}
+                  placeholder="Введите текст приветствия. Используйте {name} для подстановки имени клиента."
+                  className="w-full p-3 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                  rows={4}
+                />
+                
+                {greetingPreview && (
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-800 font-medium">Предварительный просмотр</span>
+                    </div>
+                    <p className="text-blue-900 whitespace-pre-wrap">
+                      {greetingPreview.preview}
+                    </p>
                   </div>
-                  <p className="text-sm text-red-700">
-                    Рассылка невозможна пока все клиенты не будут иметь одобренные имена. 
-                    Добавьте имена клиентам без имен и одобрите имена в их карточках.
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
 
-              {/* Предупреждение или продолжение */}
-              <div className="flex gap-3">
+              {/* Кнопки */}
+              <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
                 <button
-                  onClick={handleClose}
-                  className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
+                  onClick={() => setStep('validation')}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors"
                 >
-                  Отмена
+                  Назад
                 </button>
-                <button
-                  onClick={() => setStep('compose')}
-                  disabled={!validation.can_broadcast}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary-500 transition-colors"
-                  title={validation.can_broadcast ? 'Продолжить к составлению сообщения' : 'Сначала одобрите все имена'}
-                >
-                  {validation.can_broadcast ? 'Продолжить' : 'Заблокировано'}
-                </button>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => updateGreeting(editingGreeting, true)}
+                    disabled={!editingGreeting.trim() || greetingLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    {greetingLoading ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                </div>
               </div>
             </div>
           ) : step === 'compose' ? (
             <div className="space-y-6">
-              {/* Настройки */}
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="includeGreeting"
-                    checked={includeGreeting}
-                    onChange={(e) => setIncludeGreeting(e.target.checked)}
-                    className="mr-3 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
-                  />
-                  <label htmlFor="includeGreeting" className="text-sm font-medium text-neutral-700">
-                    Включить персонализированное приветствие
-                  </label>
+              {/* Информация о получателях */}
+              {validation && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <span className="text-blue-800 font-medium">
+                      Рассылка будет отправлена {validation.clients_ready} клиентам
+                    </span>
+                  </div>
+                  <p className="text-blue-700 text-sm">
+                    Через WhatsApp и Telegram Personal каналы
+                  </p>
                 </div>
-                
-                {includeGreeting && (
-                  <div className="ml-6 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-sm font-medium text-neutral-700">
-                        Управление приветствием
-                      </label>
-                      <button
-                        onClick={() => setStep('greeting')}
-                        className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors flex items-center gap-1"
-                      >
-                        <Settings className="w-3 h-3" />
-                        Настроить
-                      </button>
-                    </div>
-                    
-                    {currentGreeting && (
-                      <div className="bg-neutral-50 p-3 rounded-lg border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-neutral-600">
-                            Текущее приветствие
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            currentGreeting.is_custom 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'bg-neutral-100 text-neutral-700'
-                          }`}>
-                            {currentGreeting.is_custom ? 'Кастомное' : 'Стандартное'}
-                          </span>
-                        </div>
-                        <p className="text-sm text-neutral-800">
-                          {currentGreeting.greeting_text}
-                        </p>
-                      </div>
-                    )}
-                    
-                    <p className="text-xs text-neutral-500">
-                      Будет использовано {currentGreeting?.is_custom ? 'кастомное' : 'стандартное'} приветствие из настроек
+              )}
+
+              {/* Настройки приветствия */}
+              {currentGreeting && currentGreeting.enabled && (
+                <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+                  <div>
+                    <p className="font-medium text-neutral-900">Включить приветствие</p>
+                    <p className="text-sm text-neutral-600">
+                      Приветствие будет добавлено в начало сообщения
                     </p>
                   </div>
-                )}
-                
-                {!includeGreeting && (
-                  <p className="text-xs text-neutral-500 ml-6">
-                    Будет отправлено только ваше сообщение
-                  </p>
-                )}
-              </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeGreeting}
+                      onChange={(e) => setIncludeGreeting(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+              )}
 
-              {/* Текст сообщения */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
+              {/* Поле ввода сообщения */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-neutral-700">
                   Текст сообщения
                 </label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Введите текст для рассылки..."
-                  className="w-full p-3 border border-neutral-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Введите текст сообщения для рассылки..."
+                  className="w-full p-4 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
                   rows={6}
                 />
+                <p className="text-sm text-neutral-500">
+                  Сообщение будет отправлено всем активным клиентам с одобренными именами.
+                </p>
               </div>
 
               {/* Кнопки */}
-              <div className="flex gap-3">
+              <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
                 <button
-                  onClick={handleClose}
-                  className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={handleSendBroadcast}
-                  disabled={!message.trim()}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Отправить рассылку
-                </button>
-              </div>
-            </div>
-          ) : step === 'greeting' ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-neutral-900">
-                  Настройка приветствия
-                </h3>
-                {currentGreeting && (
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    currentGreeting.is_custom 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'bg-neutral-100 text-neutral-700'
-                  }`}>
-                    {currentGreeting.is_custom ? 'Кастомное' : 'Стандартное'}
-                  </span>
-                )}
-              </div>
-
-              {/* Текущее приветствие */}
-              {currentGreeting && (
-                <div className="bg-neutral-50 p-4 rounded-lg border">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-neutral-700">
-                      Текущее приветствие
-                    </span>
-                    {currentGreeting.is_custom && (
-                      <button
-                        onClick={clearGreeting}
-                        disabled={greetingLoading}
-                        className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Очистить
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-sm text-neutral-800 mb-2">
-                    {currentGreeting.greeting_text}
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    {currentGreeting.is_custom ? 'Кастомное приветствие' : 'Стандартное приветствие'}
-                  </p>
-                </div>
-              )}
-
-              {/* Форма редактирования */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Новое приветствие
-                  </label>
-                  <textarea
-                    value={editingGreeting}
-                    onChange={(e) => {
-                      setEditingGreeting(e.target.value);
-                      previewGreeting(e.target.value);
-                    }}
-                    placeholder="Привет, [Имя Клиента]! Как дела?"
-                    className="w-full p-3 border border-neutral-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    rows={3}
-                  />
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Используйте переменные: <code>[Имя Клиента]</code>, <code>[Фамилия Клиента]</code>
-                  </p>
-                </div>
-
-                {/* Предпросмотр */}
-                {greetingPreview && editingGreeting.trim() && (
-                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex items-center mb-2">
-                      <Eye className="w-4 h-4 text-blue-600 mr-2" />
-                      <span className="text-sm font-medium text-blue-800">
-                        Предпросмотр
-                      </span>
-                    </div>
-                    <p className="text-sm text-blue-900 mb-2">
-                      {greetingPreview.preview}
-                    </p>
-                    <p className="text-xs text-blue-600">
-                      Пример для: {greetingPreview.variables.first_name} {greetingPreview.variables.last_name}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Кнопки */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setStep('compose');
-                    setEditingGreeting('');
-                    setGreetingPreview(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
+                  onClick={() => setStep('validation')}
+                  className="px-4 py-2 text-neutral-600 hover:text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors"
                 >
                   Назад
                 </button>
+                
                 <button
-                  onClick={() => updateGreeting(editingGreeting, true)}
-                  disabled={!editingGreeting.trim() || greetingLoading}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  onClick={handleSendBroadcast}
+                  disabled={!message.trim()}
+                  className="flex items-center gap-2 px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {greetingLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Сохранить
+                  <Send className="w-4 h-4" />
+                  Отправить рассылку
                 </button>
               </div>
             </div>
           ) : step === 'sending' ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-              <p className="text-lg font-medium text-neutral-900 mb-2">
-                Отправляем рассылку...
-              </p>
-              <p className="text-sm text-neutral-500">
-                Пожалуйста, подождите
+              <p className="text-neutral-600 font-medium">Отправка рассылки...</p>
+              <p className="text-sm text-neutral-500 mt-2">
+                Это может занять несколько минут
               </p>
             </div>
           ) : null}

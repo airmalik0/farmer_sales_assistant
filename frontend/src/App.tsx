@@ -4,7 +4,7 @@ import { ChatWindow } from './components/ChatWindow';
 import { ClientCard } from './components/ClientCard';
 import { BroadcastModal } from './components/BroadcastModal';
 import { useWebSocket } from './hooks/useWebSocket';
-import { clientsApi, messagesApi, telegramApi } from './services/api';
+import { clientsApi, messagesApi, pactApi } from './services/api';
 import { Client, Message, WebSocketMessage } from './types';
 
 function App() {
@@ -36,6 +36,10 @@ function App() {
           console.error('Ошибка при получении обновленных данных клиента:', error);
         });
       }
+    } else if (wsMessage.type === 'new_client') {
+      // Новый клиент через Pact API
+      console.log('Получен новый клиент через Pact:', wsMessage.data);
+      loadClients();
     } else if (wsMessage.type === 'dossier_update') {
       console.log('Получено обновление досье для клиента:', wsMessage.client_id);
       
@@ -100,7 +104,10 @@ function App() {
           setClients(prevClients => 
             prevClients.map(client => 
               client.id === wsMessage.client_id
-                ? { ...client, tasks: client.tasks?.filter(task => task.id !== wsMessage.data.deleted_task_id) || [] }
+                ? { 
+                    ...client, 
+                    tasks: client.tasks?.filter(task => task.id !== wsMessage.data.deleted_task_id) || []
+                  }
                 : client
             )
           );
@@ -110,95 +117,62 @@ function App() {
           if (currentSelectedClient && currentSelectedClient.id === wsMessage.client_id) {
             setSelectedClient(prev => prev ? { 
               ...prev, 
-              tasks: prev.tasks?.filter(task => task.id !== wsMessage.data.deleted_task_id) || [] 
+              tasks: prev.tasks?.filter(task => task.id !== wsMessage.data.deleted_task_id) || []
             } : prev);
-          }
-        }
-        // Если это отдельная задача (создание/обновление)
-        else {
-          // Обновляем или добавляем задачу
-          setClients(prevClients => 
-            prevClients.map(client => {
-              if (client.id === wsMessage.client_id) {
-                const existingTaskIndex = client.tasks?.findIndex(task => task.id === wsMessage.data.id) ?? -1;
-                if (existingTaskIndex >= 0) {
-                  // Обновляем существующую задачу
-                  const updatedTasks = [...(client.tasks || [])];
-                  updatedTasks[existingTaskIndex] = wsMessage.data;
-                  return { ...client, tasks: updatedTasks };
-                } else {
-                  // Добавляем новую задачу
-                  return { ...client, tasks: [...(client.tasks || []), wsMessage.data] };
-                }
-              }
-              return client;
-            })
-          );
-          
-          // Если обновленный клиент является выбранным, обновляем selectedClient
-          const currentSelectedClient = selectedClientRef.current;
-          if (currentSelectedClient && currentSelectedClient.id === wsMessage.client_id) {
-            setSelectedClient(prev => {
-              if (!prev) return prev;
-              const existingTaskIndex = prev.tasks?.findIndex(task => task.id === wsMessage.data.id) ?? -1;
-              if (existingTaskIndex >= 0) {
-                // Обновляем существующую задачу
-                const updatedTasks = [...(prev.tasks || [])];
-                updatedTasks[existingTaskIndex] = wsMessage.data;
-                return { ...prev, tasks: updatedTasks };
-              } else {
-                // Добавляем новую задачу
-                return { ...prev, tasks: [...(prev.tasks || []), wsMessage.data] };
-              }
-            });
           }
         }
       }
     }
-  }, []); // Убираем selectedClient из зависимостей, используем ref
-
-  const handleWebSocketConnect = useCallback(() => {
-    console.log('WebSocket connected');
   }, []);
 
-  const handleWebSocketDisconnect = useCallback(() => {
-    console.log('WebSocket disconnected');
-  }, []);
-
+  // WebSocket
   const { isConnected } = useWebSocket({
     onMessage: handleWebSocketMessage,
-    onConnect: handleWebSocketConnect,
-    onDisconnect: handleWebSocketDisconnect,
+    onConnect: () => console.log('WebSocket connected'),
+    onDisconnect: () => console.log('WebSocket disconnected')
   });
 
   // Загрузка клиентов
   const loadClients = useCallback(async () => {
     try {
       const response = await clientsApi.getAll();
-      setClients(response.data);
+      const sortedClients = response.data.sort((a, b) => {
+        const aLastMessage = a.messages?.[0]?.timestamp;
+        const bLastMessage = b.messages?.[0]?.timestamp;
+        
+        if (!aLastMessage && !bLastMessage) return 0;
+        if (!aLastMessage) return 1;
+        if (!bLastMessage) return -1;
+        
+        return new Date(bLastMessage).getTime() - new Date(aLastMessage).getTime();
+      });
+      setClients(sortedClients);
     } catch (error) {
       console.error('Ошибка загрузки клиентов:', error);
     }
   }, []);
 
-  // Загрузка сообщений для клиента
+  // Загрузка сообщений
   const loadMessages = useCallback(async (clientId: number) => {
     try {
       const response = await messagesApi.getByClient(clientId);
-      setMessages(response.data.reverse()); // Разворачиваем для правильного порядка
+      const sortedMessages = response.data.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      setMessages(sortedMessages);
     } catch (error) {
       console.error('Ошибка загрузки сообщений:', error);
     }
   }, []);
 
   // Отправка сообщения
-  const handleSendMessage = useCallback(async (content: string, contentType: string) => {
+  const handleSendMessage = useCallback(async (content: string, contentType: string = 'text') => {
     const currentSelectedClient = selectedClientRef.current;
     if (!currentSelectedClient) return;
 
     try {
-      // Отправляем сообщение через Telegram API
-      await telegramApi.sendMessage({
+      // Отправляем сообщение через Pact API
+      await pactApi.sendMessage({
         client_id: currentSelectedClient.id,
         content: content,
         content_type: contentType

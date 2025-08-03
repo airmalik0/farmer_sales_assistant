@@ -106,17 +106,21 @@ async def update_task_manually(
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
     
-    # Подготавливаем данные для обновления
-    update_data = manual_update.model_dump(exclude_unset=True)
-    current_time = datetime.utcnow().isoformat()
-    
-    # Создаем структуру данных о ручных изменениях для задачи
-    # Поскольку Task не имеет structured_data поля, мы создадим новое поле в модели
-    # Но пока что просто обновим задачу обычным способом
-    task_update = task_schemas.TaskUpdate(**update_data)
-    updated_task = TaskService.update_task(db, task_id, task_update)
+    # Используем специальный метод для ручного обновления с manual_modifications
+    updated_task = TaskService.update_task_manually(db, task_id, manual_update)
     
     if updated_task:
+        # Получаем информацию о manual_modifications из extra_data
+        manual_modifications = {}
+        manual_modification_time = None
+        if updated_task.extra_data and "manual_modifications" in updated_task.extra_data:
+            manual_modifications = updated_task.extra_data["manual_modifications"]
+            # Находим последнее время изменения
+            if manual_modifications:
+                times = [mod.get("modified_at") for mod in manual_modifications.values() if mod.get("modified_at")]
+                if times:
+                    manual_modification_time = max(times)
+        
         # Уведомляем фронтенд об обновлении
         await notify_task_update(
             client_id=updated_task.client_id,
@@ -127,10 +131,13 @@ async def update_task_manually(
                 "due_date": updated_task.due_date.isoformat() if updated_task.due_date else None,
                 "is_completed": updated_task.is_completed,
                 "priority": updated_task.priority,
+                "source": updated_task.source,
+                "trigger_id": updated_task.trigger_id,
+                "extra_data": updated_task.extra_data,
                 "created_at": updated_task.created_at.isoformat() if updated_task.created_at else None,
                 "updated_at": updated_task.updated_at.isoformat() if updated_task.updated_at else None,
-                "manually_modified": True,  # Указываем, что задача была изменена вручную
-                "manual_modification_time": current_time
+                "manually_modified": bool(manual_modifications),
+                "manual_modification_time": manual_modification_time
             }
         )
     

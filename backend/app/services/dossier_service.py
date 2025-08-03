@@ -45,9 +45,31 @@ class DossierService:
         """Обновить существующее досье или создать новое"""
         dossier = DossierService.get_dossier_by_client(db, client_id)
         if dossier:
-            dossier_update = DossierUpdate(structured_data=structured_data)
+            # Получаем текущие данные
+            current_data = dossier.structured_data or {}
+            manual_modifications = current_data.get("manual_modifications", {})
+            
+            # Получаем существующий client_info
+            existing_client_info = current_data.get("client_info", {})
+            
+            # Получаем новые данные client_info из structured_data
+            new_client_info = structured_data.get("client_info", {})
+            
+            # Мержим существующие данные с новыми (новые данные имеют приоритет)
+            merged_client_info = existing_client_info.copy()
+            merged_client_info.update(new_client_info)
+            
+            # Формируем финальную структуру данных
+            final_data = structured_data.copy()
+            final_data["client_info"] = merged_client_info
+            final_data["manual_modifications"] = manual_modifications
+            
+            dossier_update = DossierUpdate(structured_data=final_data)
             updated_dossier = DossierService.update_dossier(db, dossier.id, dossier_update)
         else:
+            # Для нового досье инициализируем manual_modifications
+            if "manual_modifications" not in structured_data:
+                structured_data["manual_modifications"] = {}
             dossier_create = DossierCreate(client_id=client_id, structured_data=structured_data)
             updated_dossier = DossierService.create_dossier(db, dossier_create)
         

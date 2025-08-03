@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { Edit2, Save, X, Calendar, AlertTriangle, CheckSquare, Trash2, Zap, Plus } from 'lucide-react';
 import { Task, TaskManualUpdate, Trigger } from '../types';
-import { tasksApi, taskTriggersApi, triggersApi } from '../services/api';
+import { tasksApi, triggersApi } from '../services/api';
 import { TriggerForm } from './TriggerForm';
 import { Modal } from './Modal';
 
@@ -38,8 +38,8 @@ export const TaskEditForm = ({
       newErrors.description = 'Описание задачи обязательно';
     }
 
-    if (formData.due_date && !/^\d{4}-\d{2}-\d{2}$/.test(formData.due_date)) {
-      newErrors.due_date = 'Дата должна быть в формате YYYY-MM-DD';
+    if (formData.due_date && !/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/.test(formData.due_date)) {
+      newErrors.due_date = 'Дата должна быть в формате YYYY-MM-DD или YYYY-MM-DDTHH:MM:SS';
     }
 
     if (formData.priority && !['low', 'normal', 'high'].includes(formData.priority)) {
@@ -67,7 +67,10 @@ export const TaskEditForm = ({
         update.description = formData.description;
         hasChanges = true;
       }
-      if (formData.due_date !== task.due_date) {
+      // Compare dates by converting both to date-only format for comparison
+      const formDataDate = formData.due_date ? formatDate(formData.due_date) : null;
+      const taskDate = task.due_date ? formatDate(task.due_date) : null;
+      if (formDataDate !== taskDate) {
         update.due_date = formData.due_date;
         hasChanges = true;
       }
@@ -108,6 +111,7 @@ export const TaskEditForm = ({
     try {
       await tasksApi.delete(task.id);
       onDelete(task.id);
+      onCancel(); // Закрываем форму после успешного удаления
     } catch (error) {
       console.error('Ошибка удаления задачи:', error);
       setErrors({ submit: 'Ошибка при удалении задачи' });
@@ -133,8 +137,22 @@ export const TaskEditForm = ({
     }
   }, [task.trigger_id]);
 
+  const isFieldManuallyModified = (field: string): boolean => {
+    return !!task.extra_data?.manual_modifications?.[field];
+  };
+
   const handleChange = (field: keyof TaskManualUpdate, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
+    
+    // Convert date string to ISO datetime format for the backend
+    if (field === 'due_date' && value && typeof value === 'string') {
+      // If it's a date string (YYYY-MM-DD), convert to datetime with 08:00:00 time
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        processedValue = `${value}T08:00:00`;
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
     // Очищаем ошибку для этого поля
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -322,6 +340,11 @@ export const TaskEditForm = ({
           <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
             <Edit2 className="w-4 h-4 mr-2" />
             Описание задачи
+            {isFieldManuallyModified('description') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Изменено вручную
+              </span>
+            )}
           </label>
           <textarea
             value={formData.description || ''}
@@ -341,6 +364,11 @@ export const TaskEditForm = ({
           <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
             <Calendar className="w-4 h-4 mr-2" />
             Срок выполнения
+            {isFieldManuallyModified('due_date') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Изменено вручную
+              </span>
+            )}
           </label>
           <input
             type="date"
@@ -358,6 +386,11 @@ export const TaskEditForm = ({
           <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
             {getPriorityIcon(formData.priority || 'normal')}
             <span className="ml-2">Приоритет</span>
+            {isFieldManuallyModified('priority') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Изменено вручную
+              </span>
+            )}
           </label>
           <select
             value={formData.priority || 'normal'}
@@ -385,6 +418,11 @@ export const TaskEditForm = ({
           <label className="flex items-center text-sm font-medium text-neutral-700 mb-2">
             <CheckSquare className="w-4 h-4 mr-2" />
             Статус
+            {isFieldManuallyModified('is_completed') && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Изменено вручную
+              </span>
+            )}
           </label>
           <div className="space-y-2">
             <label className="flex items-center">

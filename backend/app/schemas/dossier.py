@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DossierBase(BaseModel):
@@ -22,12 +22,13 @@ class DossierManualUpdate(BaseModel):
     current_location: Optional[str] = None
     birthday: Optional[str] = None  # Format: YYYY-MM-DD
     gender: Optional[str] = None  # "male" or "female"
-    notes: Optional[str] = None
+    client_type: Optional[str] = None  # "private", "reseller", "broker", "dealer", "transporter"
+    personal_notes: Optional[str] = None  # Личные заметки о клиенте
+    business_profile: Optional[str] = None  # Бизнес-профиль (только для бизнес-клиентов)
 
 
 class Dossier(DossierBase):
     id: int
     last_updated: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -42,12 +42,23 @@ class CarInterestService:
 
     @staticmethod
     def update_or_create_car_interest(db: Session, client_id: int, structured_data: Dict[str, Any], notify_callback=None) -> CarInterest:
-        """Обновить существующий car_interest или создать новый"""
+        """Обновить существующие автомобильные интересы или создать новые"""
         car_interest = CarInterestService.get_car_interest_by_client(db, client_id)
         if car_interest:
-            car_interest_update = CarInterestUpdate(structured_data=structured_data)
+            # Сохраняем manual_modifications из текущих интересов
+            current_data = car_interest.structured_data or {}
+            manual_modifications = current_data.get("manual_modifications", {})
+            
+            # Объединяем с новыми данными
+            final_data = structured_data.copy()
+            final_data["manual_modifications"] = manual_modifications
+            
+            car_interest_update = CarInterestUpdate(structured_data=final_data)
             updated_car_interest = CarInterestService.update_car_interest(db, car_interest.id, car_interest_update)
         else:
+            # Для новых интересов инициализируем manual_modifications
+            if "manual_modifications" not in structured_data:
+                structured_data["manual_modifications"] = {}
             car_interest_create = CarInterestCreate(client_id=client_id, structured_data=structured_data)
             updated_car_interest = CarInterestService.create_car_interest(db, car_interest_create)
         

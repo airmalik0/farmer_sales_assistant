@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { User, Calendar, MessageCircle, FileText, Edit2, Check, X, Shield, ShieldCheck, Phone, MapPin, Cake, UserCheck, FileTextIcon, Car, CheckSquare, Plus } from 'lucide-react';
-import { Client, DossierField, CarQuery, Task } from '../types';
-import { getClientDisplayName, formatDate } from '../utils';
+import { User, Calendar, MessageCircle, FileText, Edit2, Check, X, Shield, ShieldCheck, Phone, MapPin, Cake, UserCheck, FileTextIcon, Car, CheckSquare, Plus, Building, Users, Briefcase } from 'lucide-react';
+import { Client, DossierField, CarQuery, Task, Dossier, CarInterest, Message, Trigger } from '../types';
+import { getClientDisplayName, getClientContact, getProviderIcon, getProviderName, getProviderColor, formatDate } from '../utils';
 import { clientsApi, tasksApi } from '../services/api';
 import { DossierEditForm } from './DossierEditForm';
 import { CarInterestEditForm } from './CarInterestEditForm';
@@ -13,18 +13,48 @@ const DOSSIER_FIELD_SCHEMA = {
   current_location: { title: 'Местоположение', icon: MapPin },
   birthday: { title: 'День рождения', icon: Cake },
   gender: { title: 'Пол', icon: UserCheck },
-  notes: { title: 'Заметки', icon: FileTextIcon }
+  client_type: { title: 'Тип клиента', icon: Building },
+  personal_notes: { title: 'Личные заметки', icon: FileTextIcon },
+  business_profile: { title: 'Бизнес-профиль', icon: Briefcase }
 };
 
 interface ClientCardProps {
   client?: Client;
   onClientUpdate?: (client: Client) => void;
+  dossier?: Dossier | null;
+  carInterest?: CarInterest | null;
+  tasks?: Task[];
+  messages?: Message[];
+  triggers?: Trigger[];
+  onDossierUpdate?: (dossier: any) => void;
+  onCarInterestUpdate?: (carInterest: any) => void;
+  onTaskUpdate?: (task: any) => void;
+  onTaskDelete?: (taskId: any) => void;
+  onMessageSent?: (message: any) => void;
+  onTriggerCreated?: (trigger: any) => void;
+  onTriggerUpdated?: (trigger: any) => void;
+  onBroadcastSent?: () => void;
 }
 
-export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
+export const ClientCard = ({ 
+  client,
+  onClientUpdate,
+  dossier,
+  carInterest,
+  tasks,
+  messages,
+  triggers,
+  onDossierUpdate,
+  onCarInterestUpdate,
+  onTaskUpdate,
+  onTaskDelete,
+  onMessageSent,
+  onTriggerCreated,
+  onTriggerUpdated,
+  onBroadcastSent 
+}: ClientCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
+  const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   
@@ -36,15 +66,13 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
   const [taskData, setTaskData] = useState({ description: '', due_date: '', priority: 'normal' });
 
   const handleEditStart = () => {
-    setEditFirstName(client?.first_name || '');
-    setEditLastName(client?.last_name || '');
+    setEditName(client?.name || '');
     setIsEditing(true);
   };
 
   const handleEditCancel = () => {
     setIsEditing(false);
-    setEditFirstName('');
-    setEditLastName('');
+    setEditName('');
   };
 
   const handleEditSave = async () => {
@@ -53,13 +81,11 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
     setIsSaving(true);
     try {
       const response = await clientsApi.update(client.id, { 
-        first_name: editFirstName.trim() || undefined,
-        last_name: editLastName.trim() || undefined
+        name: editName.trim() || undefined
       });
       onClientUpdate?.(response.data);
       setIsEditing(false);
-      setEditFirstName('');
-      setEditLastName('');
+      setEditName('');
     } catch (error) {
       console.error('Ошибка обновления имени клиента:', error);
     } finally {
@@ -93,6 +119,8 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
   };
 
   const handleTaskUpdate = async (updatedTask: Task) => {
+    // Мгновенное обновление UI (как в других компонентах)
+    // WebSocket уведомления будут дополнительной синхронизацией
     if (client && onClientUpdate) {
       const updatedClient = {
         ...client,
@@ -106,12 +134,20 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
   };
 
   const handleTaskDelete = async (taskId: number) => {
-    if (client && onClientUpdate) {
-      const updatedTasks = client.tasks?.filter(task => task.id !== taskId) || [];
-      const updatedClient = { ...client, tasks: updatedTasks };
-      onClientUpdate(updatedClient);
+    try {
+      await tasksApi.delete(taskId);
+      
+      // Мгновенное обновление UI (как в других компонентах)
+      // WebSocket уведомления будут дополнительной синхронизацией
+      if (client && onClientUpdate) {
+        const updatedTasks = client.tasks?.filter(task => task.id !== taskId) || [];
+        const updatedClient = { ...client, tasks: updatedTasks };
+        onClientUpdate(updatedClient);
+      }
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Ошибка удаления задачи:', error);
     }
-    setEditingTask(null);
   };
 
   const handleTaskCreate = async (taskData: { description: string; due_date?: string; priority?: string }) => {
@@ -124,10 +160,13 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
         due_date: taskData.due_date || null,
         priority: taskData.priority || 'normal',
         is_completed: false,
+        telegram_notification_sent: false,
       };
       
       const response = await tasksApi.create(newTask);
       
+      // Мгновенное обновление UI (как в других компонентах)
+      // WebSocket уведомления будут дополнительной синхронизацией
       if (onClientUpdate) {
         const updatedClient = {
           ...client,
@@ -138,6 +177,31 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
       setCreatingTask(false);
     } catch (error) {
       console.error('Ошибка создания задачи:', error);
+    }
+  };
+
+  const handleTaskToggleComplete = async (task: Task) => {
+    if (!client) return;
+    
+    try {
+      // Используем API для быстрого переключения статуса
+      const response = task.is_completed 
+        ? await tasksApi.updateManually(task.id, { is_completed: false })
+        : await tasksApi.complete(task.id);
+      
+      // Мгновенное обновление UI (как в других компонентах)
+      // WebSocket уведомления будут дополнительной синхронизацией
+      if (onClientUpdate) {
+        const updatedClient = {
+          ...client,
+          tasks: client.tasks?.map(t => 
+            t.id === task.id ? response.data : t
+          ) || []
+        };
+        onClientUpdate(updatedClient);
+      }
+    } catch (error) {
+      console.error('Ошибка изменения статуса задачи:', error);
     }
   };
 
@@ -172,6 +236,15 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
     switch (key) {
       case 'gender':
         return value === 'male' ? 'Мужской' : value === 'female' ? 'Женский' : value;
+      case 'client_type':
+        const clientTypes: Record<string, string> = {
+          'private': 'Частное лицо',
+          'reseller': 'Перепродавец',
+          'broker': 'Брокер',
+          'dealer': 'Дилер',
+          'transporter': 'Перевозчик'
+        };
+        return clientTypes[value] || value;
       case 'birthday':
         if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
           return new Date(value).toLocaleDateString('ru-RU');
@@ -241,7 +314,7 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
 
   // Функция для получения задач клиента
   const getTasks = (): Task[] => {
-    return client?.tasks || [];
+    return tasks || client?.tasks || [];
   };
 
   // Функция для форматирования приоритета задачи
@@ -336,7 +409,7 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
   }
 
   const dossierFields = getDossierFields();
-  const tasks = getTasks();
+  const clientTasks = getTasks();
 
   return (
     <div className="h-full overflow-y-auto scrollbar-hide">
@@ -350,9 +423,20 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
           <div className="flex items-center mb-4">
             <User className="w-5 h-5 text-neutral-400 mr-3" />
             <h3 className="text-base font-medium text-neutral-900">Основная информация</h3>
-          </div>
-          
+        </div>
+                
           <div className="space-y-4">
+            {/* Провайдер и канал */}
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 mb-1">Канал связи</p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{getProviderIcon(client.provider)}</span>
+                <span className={`text-sm font-medium ${getProviderColor(client.provider)}`}>
+                  {getProviderName(client.provider)}
+                </span>
+              </div>
+            </div>
+
             <div>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Имя</p>
@@ -371,30 +455,16 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      value={editFirstName}
-                      onChange={(e) => setEditFirstName(e.target.value)}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
                       className="flex-1 text-sm font-medium text-neutral-900 bg-white border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      placeholder="Имя"
+                      placeholder="Имя клиента"
                       disabled={isSaving}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleEditSave();
                         if (e.key === 'Escape') handleEditCancel();
                       }}
                       autoFocus
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={editLastName}
-                      onChange={(e) => setEditLastName(e.target.value)}
-                      className="flex-1 text-sm font-medium text-neutral-900 bg-white border border-neutral-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      placeholder="Фамилия"
-                      disabled={isSaving}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleEditSave();
-                        if (e.key === 'Escape') handleEditCancel();
-                      }}
                     />
                     <button
                       onClick={handleEditSave}
@@ -422,12 +492,12 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
                   
                   {/* Статус одобрения имени */}
                   <div className="flex items-center gap-2">
-                    {client.first_name ? (
+                    {client.name ? (
                       client.name_approved ? (
                         <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded-full">
                           <ShieldCheck className="w-3 h-3 text-green-600" />
                           <span className="text-xs font-medium text-green-700">Одобрено</span>
-                        </div>
+            </div>
                       ) : (
                         <button
                           onClick={handleApproveName}
@@ -453,8 +523,8 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
             </div>
             
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 mb-1">Telegram ID</p>
-              <p className="text-sm font-medium text-neutral-900 font-mono">{client.telegram_id}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 mb-1">Контакт</p>
+              <p className="text-sm font-medium text-neutral-900 font-mono">{getClientContact(client)}</p>
             </div>
             
             {client.username && (
@@ -542,7 +612,7 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
                               </span>
                             )}
                           </div>
-                          {field.key === 'notes' ? (
+                          {(field.key === 'personal_notes' || field.key === 'business_profile') ? (
                             <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
                               {field.value}
                             </p>
@@ -592,7 +662,7 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
           </div>
           
           {getCarQueries().length > 0 ? (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {getCarQueries().map((query, index) => (
                 <div key={index} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
                   <div className="flex items-start gap-3">
@@ -604,7 +674,7 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
                         {formatCarQuery(query)}
                       </p>
                     </div>
-                  </div>
+                    </div>
                 </div>
               ))}
               
@@ -619,8 +689,8 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
               <p className="text-xs text-neutral-500">
                 Интересы будут автоматически определены после диалога о покупке автомобиля
               </p>
-            </div>
-          )}
+          </div>
+        )}
         </div>
 
         {/* Задачи */}
@@ -689,13 +759,22 @@ export const ClientCard = ({ client, onClientUpdate }: ClientCardProps) => {
             </div>
           )}
 
-          {tasks.length > 0 ? (
+          {clientTasks.length > 0 ? (
             <div className="space-y-4">
-              {tasks.map((task, index) => (
+              {clientTasks.map((task, index) => (
                 <div key={task.id} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center mt-0.5">
-                      <span className="text-xs font-medium text-primary-700">{index + 1}</span>
+                    <div className="flex-shrink-0 flex items-center gap-2 mt-0.5">
+                      <input
+                        type="checkbox"
+                        checked={task.is_completed}
+                        onChange={() => handleTaskToggleComplete(task)}
+                        className="w-4 h-4 text-primary-600 bg-white border-neutral-300 rounded focus:ring-primary-500 focus:ring-2"
+                        title={task.is_completed ? "Отметить как невыполненную" : "Отметить как выполненную"}
+                      />
+                      <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-medium text-primary-700">{index + 1}</span>
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">

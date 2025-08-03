@@ -1,8 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip } from 'lucide-react';
 import { Message, Client } from '../types';
-import { formatTime, getContentTypeDisplay, getClientDisplayName, cn, parseMediaContent, isMediaContent } from '../utils';
-import { MediaMessage } from './MediaMessage';
+import { 
+  formatTime, 
+  getClientDisplayName, 
+  getClientContact, 
+  getProviderIcon, 
+  getProviderName, 
+  getProviderColor,
+  getMessageStatusIcon,
+  getMessageStatusColor,
+  getFileTypeIcon,
+  formatFileSize,
+  isImageAttachment,
+  isVideoAttachment,
+  isAudioAttachment 
+} from '../utils';
 
 interface ChatWindowProps {
   client?: Client;
@@ -40,6 +53,68 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
+  // Компонент для отображения вложения
+  const AttachmentMessage = ({ attachment }: { attachment: any }) => {
+    const isImage = isImageAttachment(attachment.mime_type);
+    const isVideo = isVideoAttachment(attachment.mime_type);
+    const isAudio = isAudioAttachment(attachment.mime_type);
+
+    if (isImage) {
+      return (
+        <div className="mb-2">
+          <img 
+            src={attachment.attachment_url} 
+            alt={attachment.file_name}
+            className="max-w-full rounded-lg"
+            style={{ maxHeight: '200px' }}
+          />
+          <p className="text-xs text-neutral-500 mt-1">{attachment.file_name}</p>
+        </div>
+      );
+    }
+
+    if (isVideo) {
+      return (
+        <div className="mb-2">
+          <video 
+            src={attachment.attachment_url} 
+            controls
+            className="max-w-full rounded-lg"
+            style={{ maxHeight: '200px' }}
+          />
+          <p className="text-xs text-neutral-500 mt-1">{attachment.file_name}</p>
+        </div>
+      );
+    }
+
+    if (isAudio) {
+      return (
+        <div className="mb-2">
+          <audio src={attachment.attachment_url} controls className="w-full" />
+          <p className="text-xs text-neutral-500 mt-1">{attachment.file_name}</p>
+        </div>
+      );
+    }
+
+    // Для остальных файлов показываем как ссылку
+    return (
+      <div className="mb-2">
+        <a 
+          href={attachment.attachment_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 p-2 bg-neutral-100 rounded-lg hover:bg-neutral-200 transition-colors"
+        >
+          <span>{getFileTypeIcon(attachment.mime_type)}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-neutral-900 truncate">{attachment.file_name}</p>
+            <p className="text-xs text-neutral-500">{formatFileSize(attachment.size)}</p>
+          </div>
+        </a>
+      </div>
+    );
+  };
+
   if (!client) {
     return (
       <div className="h-full flex items-center justify-center bg-neutral-50">
@@ -55,14 +130,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     <div className="h-full flex flex-col">
       {/* Заголовок чата */}
       <div className="p-6 border-b border-neutral-200 bg-white">
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{getProviderIcon(client.provider)}</span>
           <div>
             <h3 className="text-xl font-semibold text-neutral-900">
               {getClientDisplayName(client)}
             </h3>
-            <p className="text-sm text-neutral-500 font-mono">
-              Telegram ID: {client.telegram_id}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium ${getProviderColor(client.provider)}`}>
+                {getProviderName(client.provider)}
+              </span>
+              <span className="text-neutral-300">•</span>
+              <span className="text-sm text-neutral-500 font-mono">
+                {getClientContact(client)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -72,51 +154,51 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         {messages.map((message) => (
           <div
             key={message.id}
-            className={cn(
-              'flex',
+            className={`flex ${
               message.sender === 'farmer' ? 'justify-end' : 'justify-start'
-            )}
+            }`}
           >
             <div
-              className={cn(
-                'max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-2xl shadow-sm',
+              className={`max-w-xs lg:max-w-md xl:max-w-lg px-4 py-3 rounded-2xl shadow-sm ${
                 message.sender === 'farmer'
                   ? 'bg-primary-500 text-white'
                   : 'bg-white text-neutral-900 border border-neutral-200'
-              )}
+              }`}
             >
-              {message.content_type !== 'text' && (
-                <div className={cn(
-                  "text-xs font-medium mb-2 px-2 py-1 rounded-lg",
-                  message.sender === 'farmer' 
-                    ? 'bg-primary-400/30 text-primary-100' 
-                    : 'bg-neutral-100 text-neutral-600'
-                )}>
-                  {getContentTypeDisplay(message.content_type)}
+              {/* Отображение вложений */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="mb-2">
+                  {message.attachments.map((attachment) => (
+                    <AttachmentMessage key={attachment.id} attachment={attachment} />
+                  ))}
                 </div>
               )}
               
-              {/* Отображение контента сообщения */}
-              {isMediaContent(message.content_type) ? (
-                (() => {
-                  const media = parseMediaContent(message.content, message.content_type);
-                  return media ? (
-                    <MediaMessage media={media} />
-                  ) : (
-                    <div className="break-words leading-relaxed">{message.content}</div>
-                  );
-                })()
-              ) : (
+              {/* Текстовое содержимое */}
+              {message.content && (
                 <div className="break-words leading-relaxed">{message.content}</div>
               )}
 
-              <div
-                className={cn(
-                  'text-xs mt-2 font-medium',
-                  message.sender === 'farmer' ? 'text-primary-200' : 'text-neutral-500'
+              {/* Время и статус сообщения */}
+              <div className="flex items-center justify-between mt-2">
+                <div
+                  className={`text-xs font-medium ${
+                    message.sender === 'farmer' ? 'text-primary-200' : 'text-neutral-500'
+                  }`}
+                >
+                  {formatTime(message.timestamp)}
+                </div>
+                
+                {/* Статус для исходящих сообщений */}
+                {message.sender === 'farmer' && (
+                  <div className="flex items-center gap-1">
+                    <span className={`text-xs ${
+                      message.sender === 'farmer' ? 'text-primary-200' : getMessageStatusColor(message.status)
+                    }`}>
+                      {getMessageStatusIcon(message.status)}
+                    </span>
+                  </div>
                 )}
-              >
-                {formatTime(message.timestamp)}
               </div>
             </div>
           </div>
@@ -140,7 +222,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Введите сообщение..."
+              placeholder={`Отправить сообщение через ${getProviderName(client.provider)}...`}
               className="w-full p-4 border border-neutral-200 rounded-2xl resize-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-neutral-50 focus:bg-white"
               rows={1}
               style={{

@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { 
   TriggerConditions, 
-  TriggerCreate, 
   TriggerActionConfig, 
   Trigger 
 } from '../types';

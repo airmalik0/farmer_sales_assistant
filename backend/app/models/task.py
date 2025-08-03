@@ -10,7 +10,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     description = Column(Text, nullable=False)
-    due_date = Column(Date, nullable=True)  # Дата выполнения задачи
+    due_date = Column(DateTime, nullable=True)  # Дата и время выполнения задачи
     is_completed = Column(Boolean, default=False, nullable=False)  # Статус выполнения
     priority = Column(String(20), default="normal", nullable=False)  # normal, high, low
     

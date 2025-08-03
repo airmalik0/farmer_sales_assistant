@@ -1,24 +1,81 @@
 export interface Client {
   id: number;
-  telegram_id: number;
-  first_name?: string;
-  last_name?: string;
+  // Pact данные
+  pact_conversation_id: number;
+  pact_contact_id: number;
+  pact_company_id: number;
+  
+  // Идентификаторы контакта
+  sender_external_id: string;
+  sender_external_public_id?: string;
+  
+  // Информация о контакте
+  name?: string;
+  phone_number?: string;
   username?: string;
+  avatar_url?: string;
+  
+  // Канал и статус
+  provider: 'whatsapp' | 'telegram_personal';
+  operational_state: string;
+  replied_state: string;
+  
+  // Системные поля
   name_approved: boolean;
   created_at: string;
+  last_message_at?: string;
+  last_pact_message_id?: number;
+  
+  // Relationships
   messages: Message[];
   dossier?: Dossier;
   car_interest?: CarInterest;
   tasks?: Task[];
+  triggers?: Trigger[];
+}
+
+export interface MessageAttachment {
+  id: number;
+  message_id: number;
+  pact_attachment_id?: number;
+  file_name: string;
+  mime_type: string;
+  size: number;
+  attachment_url: string;
+  preview_url?: string;
+  aspect_ratio?: number;
+  width?: number;
+  height?: number;
+  push_to_talk?: boolean;
+  created_at: string;
 }
 
 export interface Message {
   id: number;
   client_id: number;
+  
+  // Pact данные
+  pact_message_id?: number;
+  external_id?: string;
+  external_created_at?: string;
+  
+  // Сообщение
   sender: 'client' | 'farmer';
   content_type: string;
-  content: string;
+  content?: string;
+  
+  // Статус и метаданные
+  income: boolean;
+  status: string;
   timestamp: string;
+  
+  // Ответы и реакции
+  replied_to_id?: string;
+  reactions?: any[];
+  details?: any;
+  
+  // Relationships
+  attachments: MessageAttachment[];
 }
 
 export interface ManualModification {
@@ -88,7 +145,9 @@ export interface DossierManualUpdate {
   current_location?: string;
   birthday?: string; // Format: YYYY-MM-DD
   gender?: string; // "male" or "female"
-  notes?: string;
+  client_type?: string; // "private", "reseller", "broker", "dealer", "transporter"
+  personal_notes?: string; // Личные заметки о клиенте
+  business_profile?: string; // Бизнес-профиль (только для бизнес-клиентов)
 }
 
 export interface CarQueryManualUpdate {
@@ -119,6 +178,7 @@ export interface WebSocketMessage {
   data?: any;
   client_id?: number;
   timestamp?: string;
+  provider?: string; // Новое поле для провайдера
 }
 
 export interface SendMessageRequest {
@@ -155,16 +215,18 @@ export interface PaginatedResponse<T> {
 export interface BroadcastValidation {
   clients_without_names: Array<{
     id: number;
-    telegram_id: number;
-    username?: string;
+    name?: string;
+    provider: string;
+    sender_external_id: string;
     name_approved: boolean;
   }>;
   clients_with_unapproved_names: Array<{
     id: number;
-    telegram_id: number;
+    name?: string;
+    provider: string;
+    sender_external_id: string;
     username?: string;
-    first_name?: string;
-    last_name?: string;
+    phone_number?: string;
     name_approved: boolean;
   }>;
   total_clients: number;
@@ -200,8 +262,7 @@ export interface GreetingPreview {
   original: string;
   preview: string;
   variables: {
-    first_name: string;
-    last_name: string;
+    name: string; // Обновлено с first_name/last_name на name
   };
 }
 
@@ -284,4 +345,42 @@ export interface TaskWithTrigger {
   trigger_name: string;
   trigger_conditions: TriggerConditions;
   trigger_action_config?: TriggerActionConfig;
+}
+
+// Новые типы для Pact API
+export interface ClientStats {
+  total: number;
+  whatsapp: number;
+  telegram_personal: number;
+  approved: number;
+}
+
+export interface MessageStats {
+  total: number;
+  incoming: number;
+  outgoing: number;
+}
+
+export interface AdminStats {
+  clients: ClientStats;
+  messages: MessageStats;
+  pact: {
+    status: string;
+    last_webhook: string;
+  };
+}
+
+export interface PactMessageSend {
+  text?: string;
+  attachment_ids?: number[];
+  replied_to_id?: string;
+}
+
+// Утилитарные типы для провайдеров
+export type Provider = 'whatsapp' | 'telegram_personal';
+
+export interface ProviderInfo {
+  name: string;
+  icon: string;
+  color: string;
 }

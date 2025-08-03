@@ -28,12 +28,19 @@ class ConnectionManager:
         await websocket.send_text(message)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
+        # Создаем копию списка для безопасной итерации
+        connections_to_remove = []
+        for connection in self.active_connections[:]:
             try:
                 await connection.send_text(message)
             except:
-                # Соединение закрыто, удаляем его
-                self.disconnect(connection)
+                # Соединение закрыто, помечаем для удаления
+                connections_to_remove.append(connection)
+        
+        # Удаляем неактивные соединения после итерации
+        for connection in connections_to_remove:
+            if connection in self.active_connections:
+                self.active_connections.remove(connection)
 
 
 manager = ConnectionManager()

@@ -10,8 +10,8 @@ interface UseWebSocketProps {
 export const useWebSocket = ({ onMessage, onConnect, onDisconnect }: UseWebSocketProps = {}) => {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const pingIntervalRef = useRef<number | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isReconnectingRef = useRef(false);
   const isMountedRef = useRef(false);

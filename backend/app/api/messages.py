@@ -5,7 +5,7 @@ from ..core.database import get_db
 from ..schemas import message as message_schemas
 from ..services.message_service import MessageService
 from ..services.client_service import ClientService
-from ..services.ai_service import AIService
+from ..services.ai import ClientAnalysisWorkflow
 from .websocket import notify_new_message
 import asyncio
 
@@ -62,12 +62,11 @@ async def create_message(message: message_schemas.MessageCreate, db: Session = D
         "sender": created_message.sender.value,
         "content_type": created_message.content_type,
         "content": created_message.content,
-        "timestamp": created_message.timestamp.isoformat()
+        "created_at": created_message.created_at.isoformat()
     })
     
-    # Если сообщение от клиента, запускаем анализ через 5 минут
-    if message.sender == "client":
-        AIService.schedule_analysis_after_delay(message.client_id, delay_minutes=0.1)
+    # Запускаем анализ через 1 минуту после любого сообщения
+    ClientAnalysisWorkflow.schedule_analysis_after_delay(message.client_id, delay_minutes=0.1)
     
     return created_message
 

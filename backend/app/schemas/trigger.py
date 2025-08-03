@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from ..models.trigger import TriggerStatus, TriggerAction
 
 
@@ -17,17 +17,19 @@ class TriggerConditions(BaseModel):
     mileage_max: Optional[int] = Field(None, ge=0, description="Максимальный пробег")
     status: Optional[Union[str, List[str]]] = Field(None, description="Статус или список статусов")
     
-    @validator('price_max')
-    def price_max_greater_than_min(cls, v, values):
-        if v is not None and 'price_min' in values and values['price_min'] is not None:
-            if v <= values['price_min']:
+    @field_validator('price_max')
+    @classmethod
+    def price_max_greater_than_min(cls, v, info):
+        if v is not None and info.data.get('price_min') is not None:
+            if v <= info.data['price_min']:
                 raise ValueError('price_max должна быть больше price_min')
         return v
     
-    @validator('year_max')
-    def year_max_greater_than_min(cls, v, values):
-        if v is not None and 'year_min' in values and values['year_min'] is not None:
-            if v < values['year_min']:
+    @field_validator('year_max')
+    @classmethod
+    def year_max_greater_than_min(cls, v, info):
+        if v is not None and info.data.get('year_min') is not None:
+            if v < info.data['year_min']:
                 raise ValueError('year_max должен быть больше или равен year_min')
         return v
 
@@ -42,7 +44,8 @@ class NotifyActionConfig(TriggerActionConfig):
     message: str = Field(..., description="Текст уведомления")
     channels: List[str] = Field(default=["websocket"], description="Каналы для отправки")
     
-    @validator('channels')
+    @field_validator('channels')
+    @classmethod
     def validate_channels(cls, v):
         allowed_channels = ["websocket", "telegram", "email"]
         for channel in v:
@@ -57,7 +60,8 @@ class CreateTaskActionConfig(TriggerActionConfig):
     description: Optional[str] = Field(None, description="Описание задачи")
     priority: Optional[str] = Field("medium", description="Приоритет задачи")
     
-    @validator('priority')
+    @field_validator('priority')
+    @classmethod
     def validate_priority(cls, v):
         allowed_priorities = ["low", "medium", "high", "urgent"]
         if v not in allowed_priorities:
@@ -71,7 +75,8 @@ class WebhookActionConfig(TriggerActionConfig):
     method: str = Field(default="POST", description="HTTP метод")
     headers: Optional[Dict[str, str]] = Field(default={}, description="HTTP заголовки")
     
-    @validator('method')
+    @field_validator('method')
+    @classmethod
     def validate_method(cls, v):
         allowed_methods = ["GET", "POST", "PUT", "PATCH"]
         if v.upper() not in allowed_methods:
@@ -119,8 +124,7 @@ class TriggerLog(TriggerLogBase):
     id: int
     triggered_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Trigger(TriggerBase):
@@ -132,8 +136,7 @@ class Trigger(TriggerBase):
     trigger_count: int
     trigger_logs: Optional[List[TriggerLog]] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TriggerSummary(BaseModel):
@@ -146,5 +149,4 @@ class TriggerSummary(BaseModel):
     last_triggered_at: Optional[datetime] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True 
+    model_config = ConfigDict(from_attributes=True) 

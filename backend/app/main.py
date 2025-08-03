@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 import logging
 import atexit
 from .core.database import engine, SessionLocal
-from .models import Client, Message, Dossier, CarInterest, Task, Settings, Trigger, TriggerLog
+from .models import Client, Message, MessageAttachment, Dossier, CarInterest, Task, Settings, Trigger, TriggerLog
 from .api import api_router
 from .services.trigger_service import TriggerService
 from .services.task_service import TaskService
@@ -53,11 +53,11 @@ async def run_daily_tasks_summary():
     
     db = SessionLocal()
     try:
-        from .services.telegram_service import TelegramService
-        success = await TelegramService.send_daily_tasks_summary(db)
-        message = "Ежедневная сводка задач отправлена" if success else "Не удалось отправить ежедневную сводку задач"
+        from .services.telegram_admin_service import TelegramAdminService
+        # Временно отключаем ежедневную сводку пока не реализуем её через админ сервис
+        message = "Ежедневная сводка задач временно отключена (переход на Pact API)"
         scheduler_logger.info(message)
-        return {"success": success, "message": message}
+        return {"success": True, "message": message}
     except Exception as e:
         scheduler_logger.error(f"Ошибка при отправке ежедневной сводки задач: {e}")
         return {"success": False, "message": f"Ошибка: {e}"}
@@ -93,7 +93,7 @@ async def lifespan(app: FastAPI):
     # Добавляем задачу отправки ежедневной сводки задач каждый день в 8:00
     scheduler.add_job(
         run_daily_tasks_summary,
-        trigger=CronTrigger(hour=16, minute=25),
+        trigger=CronTrigger(hour=8, minute=0),
         id='daily_tasks_summary',
         name='Ежедневная сводка задач каждый день в 8:00',
         replace_existing=True,
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
     
     # Запускаем планировщик
     scheduler.start()
-    scheduler_logger.info("Планировщик запущен. Проверка триггеров каждые 5 минут, ежедневная сводка в 8:00, напоминания о задачах в 9:00.")
+    scheduler_logger.info("Планировщик запущен. Проверка триггеров каждые 5 минут, напоминания о задачах каждые 5 минут, ежедневная сводка в 8:00.")
     
     # Запускаем первую проверку сразу (опционально)
     try:
@@ -120,15 +120,8 @@ async def lifespan(app: FastAPI):
     scheduler_logger.info("Остановка планировщика...")
     scheduler.shutdown()
 
-# Создаем таблицы
-Client.metadata.create_all(bind=engine)
-Message.metadata.create_all(bind=engine)
-Dossier.metadata.create_all(bind=engine)
-CarInterest.metadata.create_all(bind=engine)
-Task.metadata.create_all(bind=engine)
-Settings.metadata.create_all(bind=engine)
-Trigger.metadata.create_all(bind=engine)
-TriggerLog.metadata.create_all(bind=engine)
+# Создание таблиц теперь происходит через Alembic миграции
+# Запустите: alembic upgrade head
 
 app = FastAPI(
     title="Farmer CRM API",

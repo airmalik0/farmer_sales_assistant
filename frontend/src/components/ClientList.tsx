@@ -1,8 +1,7 @@
 import React from 'react';
 import { Radio } from 'lucide-react';
 import { Client } from '../types';
-import { getClientDisplayName, formatTime } from '../utils';
-import { cn } from '../utils';
+import { getClientDisplayName, getProviderIcon, getProviderColor, formatTime, getMessageStatusIcon, getMessageStatusColor, getFileTypeIcon } from '../utils';
 
 interface ClientListProps {
   clients: Client[];
@@ -17,6 +16,19 @@ export const ClientList: React.FC<ClientListProps> = ({
   onClientSelect,
   onBroadcastClick,
 }) => {
+  const formatMessageContent = (message: any) => {
+    if (message.content_type === 'text') {
+      return message.content || '';
+    }
+    
+    if (message.content_type === 'attachment' && message.attachments?.length > 0) {
+      const attachment = message.attachments[0];
+      return `${getFileTypeIcon(attachment.mime_type)} ${attachment.file_name}`;
+    }
+    
+    return `[${message.content_type}]`;
+  };
+
   return (
     <div className="h-full overflow-y-auto scrollbar-hide">
       <div className="p-6 border-b border-neutral-200 bg-white">
@@ -44,39 +56,54 @@ export const ClientList: React.FC<ClientListProps> = ({
             <div
               key={client.id}
               onClick={() => onClientSelect(client)}
-              className={cn(
-                'p-4 rounded-xl cursor-pointer transition-all duration-200 mb-2',
+              className={`p-4 rounded-xl cursor-pointer transition-all duration-200 mb-2 ${
                 isSelected
                   ? 'bg-primary-50 border border-primary-200 shadow-sm'
                   : 'hover:bg-neutral-50 border border-transparent hover:shadow-sm'
-              )}
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-neutral-900 truncate mb-1">
-                    {getClientDisplayName(client)}
-                  </p>
-                  {lastMessage && (
-                    <p className="text-xs text-neutral-500 truncate leading-relaxed">
-                      <span className={cn(
-                        "font-medium",
-                        lastMessage.sender === 'client' ? 'text-neutral-600' : 'text-neutral-500'
-                      )}>
-                        {lastMessage.sender === 'client' ? 'Клиент: ' : 'Вы: '}
-                      </span>
-                      {lastMessage.content_type === 'text' 
-                        ? lastMessage.content 
-                        : `[${lastMessage.content_type}]`
-                      }
+                  <div className="flex items-center gap-2 mb-1">
+                    {/* Иконка провайдера */}
+                    <span className="text-sm">{getProviderIcon(client.provider)}</span>
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {getClientDisplayName(client)}
                     </p>
+                    {/* Статус одобрения */}
+                    {client.name_approved && (
+                      <span className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" title="Имя одобрено для рассылки" />
+                    )}
+                  </div>
+                  
+                  {lastMessage && (
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs text-neutral-500 truncate leading-relaxed flex-1">
+                        <span className={`font-medium ${
+                          lastMessage.sender === 'client' ? 'text-neutral-600' : 'text-neutral-500'
+                        }`}>
+                          {lastMessage.sender === 'client' ? 'Клиент: ' : 'Вы: '}
+                        </span>
+                        {formatMessageContent(lastMessage)}
+                      </p>
+                      
+                      {/* Статус сообщения для исходящих */}
+                      {lastMessage.sender === 'farmer' && (
+                        <span className={`text-xs ${getMessageStatusColor(lastMessage.status)}`}>
+                          {getMessageStatusIcon(lastMessage.status)}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 
-                {lastMessage && (
-                  <div className="text-xs text-neutral-400 ml-3 mt-0.5 font-medium">
-                    {formatTime(lastMessage.timestamp)}
-                  </div>
-                )}
+                <div className="text-xs text-neutral-400 ml-3 mt-0.5 font-medium flex flex-col items-end gap-1">
+                  {lastMessage && formatTime(lastMessage.timestamp)}
+                  {/* Канал связи */}
+                  <span className={`text-xs ${getProviderColor(client.provider)} opacity-75`}>
+                    {client.provider === 'whatsapp' ? 'WA' : 'TG'}
+                  </span>
+                </div>
               </div>
             </div>
           );
@@ -87,7 +114,7 @@ export const ClientList: React.FC<ClientListProps> = ({
         <div className="flex items-center justify-center h-32 text-neutral-500">
           <div className="text-center">
             <p className="text-sm font-medium text-neutral-600 mb-1">Нет активных диалогов</p>
-            <p className="text-xs text-neutral-500">Диалоги появятся здесь после получения сообщений</p>
+            <p className="text-xs text-neutral-500">Диалоги появятся здесь после получения сообщений через Pact API</p>
           </div>
         </div>
       )}

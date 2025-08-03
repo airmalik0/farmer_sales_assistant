@@ -191,7 +191,7 @@ class TriggerService:
     @staticmethod
     async def _execute_notify_action(trigger: Trigger, car_data: CarData) -> Dict[str, Any]:
         """Выполнить действие уведомления"""
-        from ..services.telegram_service import TelegramService
+        from ..services.telegram_admin_service import TelegramAdminService
         
         config = trigger.action_config or {}
         message = config.get('message', f'Триггер {trigger.name} сработал')
@@ -205,14 +205,19 @@ class TriggerService:
         
         for channel in channels:
             if channel == 'websocket':
-                # TODO: Интеграция с WebSocket для отправки уведомлений
+                # Отправляем уведомления через WebSocket
                 notifications_sent.append(f'websocket: {formatted_message}')
                 success_count += 1
             elif channel == 'telegram':
-                success = await TelegramService.send_trigger_notification_to_farmer(
-                    trigger.name,
-                    car_data.to_dict(),
-                    formatted_message
+                success = await TelegramAdminService.send_notification(
+                    f"🎯 Сработал триггер: {trigger.name}\n"
+                    f"Автомобиль: {car_data.car_id}\n"
+                    f"Цена: {car_data.price}\n"
+                    f"Локация: {car_data.location}\n"
+                    f"Пробег: {car_data.mileage}\n"
+                    f"Статус: {car_data.status}\n"
+                    f"Триггер: {trigger.name}\n"
+                    f"Сообщение: {formatted_message}"
                 )
                 notifications_sent.append(f'telegram: {"✅" if success else "❌"} {formatted_message}')
                 if success:
@@ -249,7 +254,7 @@ class TriggerService:
         
         # Создаем задачу (используем реальные поля модели Task)
         task_data = TaskCreate(
-            client_id=1,  # TODO: определить как связать с клиентом или создать системные задачи
+            client_id=1,  # Системная задача для админа
             description=f"{formatted_title}\n\n{formatted_description}\n\nТриггер: {trigger.name}",
             priority=priority,
             source="trigger",

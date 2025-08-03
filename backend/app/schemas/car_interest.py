@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CarInterestBase(BaseModel):
@@ -27,6 +27,9 @@ class CarQueryManualUpdate(BaseModel):
     mileage_max: Optional[int] = None
     exterior_color: Optional[Union[str, List[str]]] = None
     interior_color: Optional[Union[str, List[str]]] = None
+    engine_type: Optional[str] = None
+    drive_type: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class CarInterestManualUpdate(BaseModel):
@@ -38,5 +41,4 @@ class CarInterest(CarInterestBase):
     id: int
     last_updated: datetime
 
-    class Config:
-        from_attributes = True 
+    model_config = ConfigDict(from_attributes=True) 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Client, Message, Dossier, CarInterest, Task, DossierManualUpdate, CarInterestManualUpdate, TaskManualUpdate } from '../types';
+import { Client, Message, Dossier, CarInterest, Task, DossierManualUpdate, CarInterestManualUpdate, TaskManualUpdate, AdminStats, PactMessageSend } from '../types';
 
 // В development используем относительный путь через Vite proxy
 // В production можно использовать переменную окружения
@@ -15,7 +15,6 @@ const api = axios.create({
 export const clientsApi = {
   getAll: () => api.get<Client[]>('/clients'),
   getById: (id: number) => api.get<Client>(`/clients/${id}`),
-  getByTelegramId: (telegramId: number) => api.get<Client>(`/clients/telegram/${telegramId}`),
   create: (client: Omit<Client, 'id' | 'created_at' | 'messages' | 'dossier'>) =>
     api.post<Client>('/clients', client),
   update: (id: number, client: Partial<Client>) =>
@@ -86,13 +85,33 @@ export const tasksApi = {
     api.put<Task>(`/tasks/${id}/manual`, update),
 };
 
-export const telegramApi = {
+// Новый Pact API вместо старого telegram API
+export const pactApi = {
   sendMessage: (data: { client_id: number; content: string; content_type?: string }) =>
-    api.post('/telegram/send', data),
+    api.post('/pact/send', data),
   broadcast: (data: { content: string; content_type?: string; include_greeting?: boolean }) =>
-    api.post('/telegram/broadcast', data),
+    api.post('/pact/broadcast', data),
   validateBroadcast: (data: { content: string; content_type?: string }) =>
-    api.post('/telegram/validate-broadcast', data),
+    api.post('/pact/validate-broadcast', data),
+  uploadAttachment: (file: File, metadata?: any) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (metadata) {
+      Object.keys(metadata).forEach(key => {
+        formData.append(`metadata[${key}]`, metadata[key]);
+      });
+    }
+    return api.post('/pact/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+};
+
+// Новый Admin API для статистики и управления
+export const adminApi = {
+  getStats: () => api.get<AdminStats>('/admin/stats'),
+  syncConversations: () => api.post('/admin/sync-conversations'),
+  testPact: () => api.get('/admin/test-pact'),
 };
 
 export const settingsApi = {
@@ -108,12 +127,11 @@ export const settingsApi = {
       ...(enabled !== undefined && { enabled: enabled }),
     }),
   clearGreeting: () => api.delete('/settings/greeting'),
-  previewGreeting: (greetingText: string, firstName: string = 'Иван', lastName: string = 'Иванов') =>
+  previewGreeting: (greetingText: string, name: string = 'Иван') =>
     api.get('/settings/greeting/preview', {
       params: {
         greeting_text: greetingText,
-        first_name: firstName,
-        last_name: lastName,
+        name: name,
       },
     }),
 };

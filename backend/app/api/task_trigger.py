@@ -10,6 +10,7 @@ from ..services.trigger_service import TriggerService
 from ..services.client_service import ClientService
 from pydantic import BaseModel
 import asyncio
+import logging
 
 router = APIRouter()
 
@@ -236,9 +237,9 @@ def toggle_trigger_for_client(
 async def send_daily_tasks_summary(db: Session = Depends(get_db)):
     """Отправить ежедневную сводку задач фермеру"""
     try:
-        from ..services.telegram_service import TelegramService
+        from ..services.telegram_admin_service import TelegramAdminService
         
-        success = await TelegramService.send_daily_tasks_summary(db)
+        success = await TelegramAdminService.send_daily_tasks_summary(db)
         
         if success:
             return {

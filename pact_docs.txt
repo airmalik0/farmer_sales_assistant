@@ -1,0 +1,2309 @@
+
+Introduction
+Options for using our service
+Private API V1
+Private API V2
+Errors
+Terms and conditions
+Legal
+About Pact
+Sign Up for a API Key
+Introduction
+
+Welcome to the Pact API! You can use our API as a single messaging API. You can view code examples in the dark area to the right.
+
+This API was designed by way Implement only required. Feel you free to contact with support if you are sure what make sense to append additional methods.
+
+5 easy steps for integration:
+Signup here
+Get your API token in account settings
+Connect WhatsApp or Instagram or anything here
+Setup webhooks using this doc
+Try to send or receive message
+Options for using our service
+
+1. Curl
+
+You could use curl or others tools for interact with our service
+
+2. SDK-PHP
+
+You could use our SDK-PHP
+
+Private API V1
+
+Authentication
+All requests to Pact API must be authenticated.
+
+There are two options for autentication:
+
+Pact expects for the API key to be included in all API requests to the server in a header that looks like the following:
+
+X-Private-Api-Token: YOUR_API_TOKEN
+
+or as a additional parameter in URI
+
+"API_ENDPOINT_HERE?private_api_token=YOUR_API_TOKEN"
+
+ You must replace YOUR_API_TOKEN with your personal API key.
+ You must use personal API key on each request to the API.
+You can get your Pact API key from account settings page.
+
+Examples
+
+# Header
+curl -X GET "API_ENDPOINT_HERE"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+
+# OR use a private_api_token parameter
+curl -X GET "API_ENDPOINT_HERE?private_api_token=YOUR_API_TOKEN"
+Companies
+ Each user has many companies. Each user must have at least one company in the system.
+Get All Companies
+
+curl "https://api.pact.im/p1/companies"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "companies":[
+         {
+            "external_id":1,
+            "name":"COMPANY_NAME",
+            "phone":null,
+            "description":null,
+            "webhook_url":null
+         }
+      ],
+      "next_page": "fslkfg2lkdfmlwkmlmw4of94wg34lfkm34lg"
+   }
+}
+This endpoint return list of all user companies.
+
+HTTP Request
+
+GET https://api.pact.im/p1/companies
+
+Query Parameters
+
+Parameter	Required	Validations	Description
+from	false	Must be a String not more than 255 symbols	Next page token geted from last request. Not valid or empty token return first page
+per	false	Must be a number between 1 and 100	Number of elements per page. Default: 50
+sort_direction	false	Must be a String	We sort results by id. Change sorting direction. Avilable values: asc, desc. Default: asc.
+Update company
+
+curl -X PUT "https://api.pact.im/p1/companies/ID"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "name=Test"
+The above command returns JSON structured like this:
+{
+   "status":"updated",
+   "data":{
+      "external_id":2
+   }
+}
+This endpoint updates specific company attributes.
+
+HTTP Request
+
+PUT https://api.pact.im/p1/companies/<ID>
+
+URL Parameters
+
+Parameter	Description
+ID	ID of the company for update
+Query Parameters
+
+Parameter	Required	Validations	Description
+name	false	Must be a String not more than 255 symbols	Company name
+phone	false	Must be a String	Official company phone number or phone number of contact person
+description	false	Must be a String	Company description
+webhook_url	false	Must be a String	Endpoint for webhooks
+hidden	false	Must be a Boolean	Hide/Show a company in the Pact web interface
+ If you want to receive webhooks make sure that webhook_url is present. Webhook url must be valid and response code on POST json-request {'source':'pact.im', 'operation':'test'} must be 200
+Create new company
+
+curl -X POST "https://api.pact.im/p1/companies"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "name=Test"
+The above command returns JSON structured like this:
+{
+   "status":"created",
+   "data":{
+      "external_id":2
+   }
+}
+This endpoint creates a new company for user.
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies
+
+Query Parameters
+
+Parameter	Required	Validations	Description
+name	true	Must be a String not more than 255 symbols	Company name
+phone	false	Must be a String	Official company phone number or phone number of contact person
+description	false	Must be a String	Company description
+webhook_url	false	Must be a String	Endpoint in the Internet which can receive webhooks
+ If you want to receive webhooks make sure that webhook_url is present. Webhook url must be valid and response code on POST json-request {'source':'pact.im', 'operation':'test'} must be 200
+Channels
+In order to receive and send messages, you need to connect channels. Channels is a source of incoming messages in the system. Channel providers:
+
+WhatsApp
+Instagram_business
+Telegram
+Telegram Personal
+Viber
+VK
+Facebook
+You can also connect required channels via our web interface under the settings page.
+
+ You can connect only one channel per one company for each provider. Contact with support if you want to use more than one channel
+ You have to setup webhook's to make channels fully functional.
+Get All channels
+
+curl "https://api.pact.im/p1/companies/COMPANY_ID/channels"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "channels":[
+         {
+            "external_id":399,
+            "provider":"whatsapp"
+         }
+      ],
+      "next_page": "fslkfg2lkdfmlwkmlmw4of94wg34lfkm34lg"
+   }
+}
+This endpoint returns all the company channels.
+
+HTTP Request
+
+GET https://api.pact.im/p1/companies/<COMPANY_ID>/channels
+
+Query Parameters
+
+Parameter	Required	Validations	Description
+from	false	Must be a String not more than 255 symbols	Next page token geted from last request. Not valid or empty token return first page
+per	false	Must be a number between 1 and 100	Number of elements per page. Default: 50
+sort_direction	false	Must be a String	We sort results by id. Change sorting direction. Avilable values: asc, desc. Default: asc.
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+Create new channel
+
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=telegram&token=12345677890"
+Create channel:
+Create whatsapp channel:
+Create instagram business channel:
+Create facebook/vkontakte/vkontakte_direct/telegram/viber channel
+The above command returns JSON structured like this:
+{
+   "status": "created",
+   "data": {
+      "external_id": 1
+   }
+}
+This endpoint create a new channel in the company.
+
+ You can connect only one channel per one company for each provider. Contact with support if you want to use more than one channel
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+Query Parameters
+
+Create whatsapp channel (by qr code)
+
+Parameter	Required	Validations	Description
+provider	true	Must be whatsapp	 
+sync_messages_from	false	timestamp	Only messages created after sync_messages_from will be synchronized. Not older than one month. If the parameter is not specified, no messages will be synchronized.
+ You will get QR-code webhook after this action. This QR-code must be scanned on mobile device to authorize Pact.im. If you can't do this - try to connect Whatsapp via our web interface.
+Create whatsapp channel (by digital code)
+
+Parameter	Required	Validations	Description
+provider	true	Must be whatsapp	 
+sync_messages_from	false	timestamp	Only messages created after sync_messages_from will be synchronized. Not older than one month. If the parameter is not specified, no messages will be synchronized.
+phone	true	string	Phone number. Example: ‘7999999999’
+ After you have created a WhatsApp channel, we will send a confirmation code ("Request code" endpoint). You must enter this code in the WhatsApp application to complete the connection.
+Create whatsapp business channel (dialog360 by token)
+
+Parameter	Required	Validations	Description
+provider	true	Must be whatsapp_business	 
+hosting_type	true	Must be a cloud, onpremise	Hosting platform type
+token	true	Must be a String	Token for auth.
+subtype	false	Must be a regular, unlim, no_write_first	Tarif name
+Create whatsapp business channel (dialog360 by channel_id)
+
+Parameter	Required	Validations	Description
+provider	true	Must be whatsapp_business	 
+hosting_type	true	Must be a cloud, onpremise	Hosting platform type
+dialog360_channel_id	true	Must be a String	channel_id for auth
+dialog360_client_id	false	Must be a String	client_id for auth
+account_name	false	Must be a String	Account name for waba profile
+subtype	false	Must be a regular, unlim, no_write_first	Tarif name
+Create avito channel
+
+Parameter	Required	Validations	Description
+provider	true	Must be avito	 
+login	true	Must be a String	avito client_id
+password	true	Must be a String	avito client secret
+Create instagram business channel
+
+Steps:
+
+It is necessary to follow the instructions for Facebook until you receive the token.
+Make a request for https://graph.facebook.com/v4.0/me?fields=first_name,last_name,picture,name,email indicating the token.
+In the response you will receive information about your user.
+
+Send a request to us p1/companies/<company_id>/channels.
+The request body must contain:
+provider: “instagram_business”
+token: “token”
+phone: “+79131112233”
+data: “response body to previous request”
+At this stage, a channel was created and information on Instagram business accounts was uploaded.
+
+Send a request to p1/companies/<company_id>/channels/<external_id>/enable_page_instagram?page_id=<page[:id]>&sync_period=<sync_period>.
+
+external_id - parameter from previous request
+page[:id] - parameter from previous request
+sync_period - used to determine what period of messages will be synchronized: day, week, month, all.
+
+This is necessary in order to determine which Instagram account to use.
+
+Parameter	Required	Validations	Description
+provider	true	Must be instagram_business	 
+private_api_token	true	String	User privat token
+data	true	Hash	Data from Instagram that was transferred to redirect_url
+phone	true	String	User phone
+token	true	String	Instagram token
+Create facebook/vkontakte/vkontakte_direct/telegram/viber channel
+
+Parameter	Required	Validations	Description
+provider	true	Must be one of: facebook, vkontakte, vkontakte_direct, telegram, viber	Shows which provider you want to connect
+token	true	Must be a String	Token for auth.
+Create telegram personal channel (by qr code)
+
+Parameter	Required	Validations	Description
+provider	true	Must be telegram_personal	 
+via_qr_code	true	boolean	Must be a ‘true’
+sync_messages_from	false	timestamp	Only messages created after sync_messages_from will be synchronized. Not older than one month. If the parameter is not specified, no messages will be synchronized.
+ You will get QR-code webhook after this action. This QR-code must be scanned on mobile device to authorize Pact.im. If you can't do this - try to connect Telegram via our web interface.
+Create telegram personal channel (by digital code)
+
+Parameter	Required	Validations	Description
+provider	true	Must be telegram_personal	 
+phone	true	Must be a String	Phone number. Example: ‘7999999999’
+sync_messages_from	false	timestamp	Only messages created after sync_messages_from will be synchronized. Not older than one month. If the parameter is not specified, no messages will be synchronized.
+ After you have created a telegram channel. You must request a confirmation code ("Request Code" endpoint). The code will be sent to your device's Telegram App. You must send the received code to the endpoint "Confirm code"
+Request code Confirm code
+
+Get token for vk group:
+
+Open “Manage” in selected group
+Open “API usage” (https://vk.com/public?act=tokens)
+Create and copy new token
+Update channel
+
+curl -X PUT "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "token=9876543210"
+Update channel:
+Update instagram channel:
+Update facebook/vkontakte/vkontakte_direct/telegram/viber channel:
+The above command returns JSON structured like this:
+{
+   "status":"updated",
+   "data":{
+      "external_id":2
+   }
+}
+This endpoint updates existing channel in the company.
+
+HTTP Request
+
+PUT https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+Query Parameters
+
+For facebook/vkontakte/vkontakte_direct/telegram/viber/instagram_business channels
+
+Parameter	Required	Validations	Description
+token	true	Must be a String	…
+Delete channel
+
+curl -X DELETE "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+Delete channel:
+The above command returns JSON structured like this:
+{
+   "status":"deleted"
+}
+HTTP Request
+
+DELETE https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel for disable
+How to write first message to Whatsapp
+
+ Whatsapp requires using this method to write the first message.
+Send first message to whatsapp
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/conversations"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "phone=79250000001&text=message"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "id":17,
+      "company_id":154,
+      "channel":{
+         "id":399,
+         "type":"whatsapp"
+      },
+      "state":"trying_deliver",
+      "conversation_id":null,
+      "message_id":null,
+      "details":null,
+      "created_at":1510393147
+   }
+}
+How to check if user has Whatsapp account
+
+curl -X GET "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/user_exists?phone=79250000001"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "exists": true
+}
+How to write first message to Whatsapp Business
+
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/conversations"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "phone=79250000001&template[id]=template_id&template[language_code]=ru&template[parameters][]=имя"
+This endpoint provides an ability to create conversation with a client in whatsapp channel. When you execute this request we will add a job for delivery. We will send webhook when the operation is complete or failed.
+
+You can also poll delivery status here: Jobs
+
+ Whatsapp business requires using this method to write the first message.
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>/conversations
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+Query Parameters
+
+Parameter	Required	Validations	Description
+phone	true	Must be in format 79250000001	Contact phone number
+message	false	Must be String	Message text. For regular Whatsapp channel only
+template	false	Must be Object	Template data. For Whatsapp Business channel only
+Whatsapp Business Template Parameters
+
+Parameter	Required	Validations	Description
+id	true	Must be String	ID of registered template
+language_code	true	Must be String	Language code of registered template ('en', 'ru', etc)
+parameters	true	Must be Array	Template substitution parameters
+Request code (whatsapp)
+
+Request code:
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/request_code"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=whatsapp"
+The above command returns JSON structured like this:
+{
+   "sessionId": "1426",
+   "code": "ZHHJ-KQSP",
+   "ttl": "160s"
+}
+In the WhatsApp mobile application, you will receive a notification asking you to insert an authorization code. Enter the value “code” there
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>/request_code
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+provider	whatsapp
+Query Parameters
+
+Request challenge code
+
+Parameter	Required	Validations	Description
+provider	true	Must be whatsapp	 
+Request code (telegram personal)
+
+Request code:
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/request_code"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=telegram_personal"
+The above command returns JSON structured like this:
+{
+  "code_length": 6,
+  "code_type": "app",
+  "expires_in": 60,
+  "next_type": "app",
+  "session_id": 1337,
+  "status": "ok"
+}
+This endpoint request code for telegram personal
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>/request_code
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+Query Parameters
+
+Request challenge code
+
+Parameter	Required	Validations	Description
+provider	true	Must be telegram_personal	 
+Confirm code (telegram personal)
+
+Confirmation type is code
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/confirm"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=telegram_personal&confirmation_type=code&code=2567"
+Successful response:
+{
+  "result": "ok",
+  "state": "enabled"
+}
+Confirmirmation type is password
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/confirm"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=telegram_personal&confirmation_type=password&password=123456"
+The above command returns JSON structured like this:
+{
+  "result": "ok",
+  "state": "enabled"
+}
+This endpoint confirm telegram personal channel with two types: code, password
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>/confirm
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+Query Parameters
+
+Confirmation type is code
+
+Parameter	Required	Validations	Description
+provider	true	Must be telegram_personal	 
+confirmation_type	true	Must be code	 
+code	true	Must be a Number	Example: 1234
+Confirmation type is password
+
+Parameter	Required	Validations	Description
+provider	true	Must be telegram_personal	 
+confirmation_type	true	Must be password	 
+password	true	Must be a String	Example: qwerty123
+Request code (instagram only)
+
+Request challenge code:
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/request_code"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=instagram&challenge_variant=0"
+The above command returns JSON structured like this:
+{
+  "result": "ok"
+}
+Request two factor authentication code:
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/request_code"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=instagram&challenge_type=two_factor"
+The above command returns JSON structured like this:
+{
+  "result": "ok"
+}
+This endpoint request challenge or two factor authentication code.
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>/request_code
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+Query Parameters
+
+Request challenge code
+
+Parameter	Required	Validations	Description
+provider	true	Must be instagram	 
+challenge_variant	true	 	 
+Request two factor SMS authentication code
+
+Parameter	Required	Validations	Description
+provider	true	Must be instagram	 
+challenge_type	true	Must be two_factor	 
+Confirm code (instagram only)
+
+Confirm challenge code:
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/confirm"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=instagram&confirmation_code=123456"
+The above command returns JSON structured like this.
+Successful response:
+{
+  "result": "ok"
+}
+Two factor authentication required:
+{
+  "result": "ok",
+  "data": {
+    "two_factor_requires": true,
+    "details": [
+      { "value": 1, "key": "sms" },
+      { "value": 2, "key": "recovery_code" },
+      { "value": 3, "key": "totp" }
+    ]
+  }
+}
+Challenge required:
+{
+  "result": "ok",
+  "data": {
+    "confirmation_requires": true,
+    "details": [
+      { "value" => 1, "label" => "e*******e@example.org" },
+      { "value" => 0, "label" => "+0 *** ***-**-00" }
+    ]
+  }
+}
+Confirm two factor authentication code:
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/channels/ID/confirm"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=instagram&confirmation_type=two_factor&confirmation_variant=3&confirmation_code=123456"
+The above command returns JSON structured like this:
+{
+  "result": "ok"
+}
+This endpoint submit challenge or two factor authentication code.
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<ID>/confirm
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the channel
+Query Parameters
+
+challenge code
+
+Parameter	Required	Validations	Description
+provider	true	Must be instagram	 
+confirmation_code	true	Must be a String	 
+two factor authentication code
+
+Parameter	Required	Validations	Description
+provider	true	Must be instagram	 
+confirmation_type	true	Must be two_factor	 
+confirmation_variant	true	Must be a Integer	Variant from request code response (data->details->value). Typicaly 1, 2 or 3.
+confirmation_code	true	Must be a String	 
+Conversations
+Conversation represents dialogue between you and the client. Currently only 1-1 conversations are supported. Each conversation has many messages.
+
+Get All Conversations
+
+curl "https://api.pact.im/p1/companies/COMPANY_ID/conversations"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "conversations":[
+         {
+            "external_id":1,
+            "name":"Friend",
+            "channel_id":1,
+            "channel_type":"whatsapp",
+            "created_at":"2017-04-25T18:30:23.076Z",
+            "created_at_timestamp":1603119600,
+            "avatar":"/avatars/original/missing.png",
+            "sender_external_id":"79260000001",
+            "meta":{
+
+            }
+         }
+      ],
+      "next_page": "fslkfg2lkdfmlwkmlmw4of94wg34lfkm34lg"
+   }
+}
+HTTP Request
+
+GET https://api.pact.im/p1/companies/<COMPANY_ID>/conversations
+
+Query Parameters
+
+Parameter	Required	Validations	Description
+from	false	Must be a String not more than 255 symbols	Next page token geted from last request. Not valid or empty token return first page
+per	false	Must be a number between 1 and 100	Number of elements per page. Default: 50
+sort_direction	false	Must be a String	We sort results by id. Change sorting direction. Avilable values: asc, desc. Default: asc.
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+Create new conversation
+
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/conversations"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=whatsapp&phone=79250000001"
+curl -X POST "https://api.pact.im/p1/companies/COMPANY_ID/conversations"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "provider=telegram_personal&username=testuser&text=Hello"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "conversation":{
+         "external_id":1,
+         "name":"79250000001",
+         "channel_id":1,
+         "channel_type":"whatsapp",
+         "created_at":"2017-11-11T10:17:10.655Z",
+         "created_at_timestamp":1603119600,
+         "avatar":"/avatars/original/missing.png",
+         "sender_external_id":"79250000001",
+         "meta":{
+
+         }
+      }
+   }
+}
+This endpoint creates conversation in the company using whatsapp channel.
+
+ If you have a `whatsapp_business` provider, use a different method to create conversation using a template
+Create first message for whatsapp business provider
+
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/conversations
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+Query Parameters for whatsapp channel
+
+Parameter	Required	Validations	Description
+provider	true	Must be whatsapp	Shows what you want to create new conversation in the whatsapp channel
+phone	true	Must be in format 79250000001	Contact phone number
+Query Parameters for telegram_personal channel
+
+ You must use only one parameter: `phone` or `username`
+Parameter	Required	Validations	Description
+provider	true	Must be telegram_personal	Shows what you want to create new conversation
+phone	true	Must be in format 79250000001	Contact phone number
+username	true	String	Username
+text	true	String	Message text
+send_to_crm	false	boolean	Sync initializing message to CRM integrations. Default: true
+Update note for conversation
+
+curl -X PUT "https://api.pact.im/p1/companies/COMPANY_ID/conversations/<ID>/note"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "note=your+note"
+The above command returns JSON structured like this:
+{
+   "status":"updated"
+}
+This endpoint update note of conversation in the company.
+
+HTTP Request
+
+PUT https://api.pact.im/p1/companies/<COMPANY_ID>/conversations/<ID>/note
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+CONVERSATION_ID	ID of the conversation
+Body Parameters
+
+Parameter	Required	Validations	Description
+note	true	Must be String	Note text
+Get conversation details
+
+curl "https://api.pact.im/p1/companies/COMPANY_ID/conversations/ID"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "conversation":{
+         "external_id":1,
+         "name":"79250000001",
+         "channel_id":1,
+         "channel_type":"whatsapp",
+         "created_at":"2017-11-11T10:17:10.655Z",
+         "created_at_timestamp":1603119600,
+         "avatar":"/avatars/original/missing.png",
+         "sender_external_id":"79250000001",
+         "meta":{
+
+         }
+      }
+   }
+}
+HTTP Request
+
+GET https://api.pact.im/p1/companies/<COMPANY_ID>/conversations/<ID>
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the conversation
+Update assignee for conversation
+
+curl -X PUT "https://api.pact.im/p1/companies/COMPANY_ID/conversations/<ID>/assign"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "assignee_id=42"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "conversation":{
+         "external_id":1,
+      }
+   }
+}
+This endpoint update assignee the pact user to the conversation in the company.
+
+HTTP Request
+
+PUT https://api.pact.im/p1/companies/<COMPANY_ID>/conversations/<ID>/assign
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the conversation
+Query Parameters
+
+Parameter	Required	Validations	Description
+assignee_id	false	Must be an integer	User id
+Toggle bitrix block openlines
+
+curl -X PUT "https://api.pact.im/p1/companies/COMPANY_ID/conversations/<ID>/toggle_bitrix_block_openlines"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+  -d "enabled=true"
+The above command returns JSON structured like this:
+{
+  "status": "ok",
+  "data": {
+    "conversation": {
+      "external_id": 91,
+      "name": "Mikhail Tabunov",
+      "channel_id": null,
+      "channel_type": "whatsapp",
+      "created_at": "2021-12-09T06:08:50.106Z",
+      "created_at_timestamp": 1639030130,
+      "avatar": "https://api.pact.im/avatars/original/missing.png",
+      "sender_external_id": "79770000011",
+      "meta": {},
+      "last_message_at": 1639030130,
+      "last_income_message_at": 0,
+      "bitrix_block_openlines": true
+    }
+  }
+}
+This endpoint toggle bitrix_block_openlines param to the conversation in the company.
+
+HTTP Request
+
+PUT https://api.pact.im/p1/companies/<COMPANY_ID>/conversations/<ID>/toggle_bitrix_block_openlines
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the conversation
+Query Parameters
+
+Parameter	Required	Validations	Description
+enabled	false	Must be a boolean	Enabled status
+Upload attachment for message
+
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data": {
+      "conversation": {
+         "external_id": 1,
+      }
+   }
+}
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+ID	ID of the conversation
+Query Parameters
+
+Parameter	Required	Validations	Description
+file	false	Must be a file	Uploaded file
+file_url	false	Must be a file url	File url
+push_to_talk	false	Boolean	To send audio files as voice messages
+metadata: {“data”:{“width”: integer, “height”: integer}}	false	Json	Determine the size of attachments (image, video) in the mobile version
+ Whatsapp requires using this method with existing whatsapp business template
+HTTP Request
+
+POST https://api.pact.im/p1/companies/<COMPANY_ID>/conversations/<ID>/messages/attachments
+
+Code example
+
+Waba Templates
+A company with a whatsapp_business channel can have waba templates
+
+Get waba templates
+
+curl "https://api.pact.im/p1/companies/COMPANY_ID/waba_templates"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+returns JSON structured like this:
+{
+  "status":"ok",
+  "data":{
+    "waba_templates":[
+      {
+        "id":7754,
+        "company_id":72562,
+        "name":"Шаблон с переменной",
+        "waba_id":"1_shablon_kakoito",
+        "body":"Тестовый шаблон с какой то переменной {{1}}",
+        "substitutions_count":1,
+        "position":7754
+      }
+    ]
+  }
+}
+HTTP Request
+
+GET https://api.pact.im/p1/companies/<COMPANY_ID>/waba_templates
+
+Query Parameters
+
+Parameter	Required	Validations	Description
+from	false	Must be a String not more than 255 symbols	Next page token geted from last request. Not valid or empty token return first page
+per	false	Must be a number between 1 and 100	Number of elements per page. Default: 50
+sort_direction	false	Must be a String	We sort results by created_at. Change sorting direction. Avilable values: asc, desc. Default: asc.
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+Webhooks
+Webhooks is a way to notify you about new messages or other events in our system. It’s mandatory to use webhooks for 99% integrations with our API.
+
+Endpoint with webhook_url must response with http status code 200 if endpoint received webhook.
+
+Webhook could be repeated up to 10 times within 60 sec delay if response status code is not equal 200. After 10 retries webhook will be dropped and nevery delivered.
+
+ The configuration of the name display settings does not affect webhooks in any way.
+New conversation
+
+The above command returns JSON structured like this:
+{
+   "type":"conversation",
+   "event":"new",
+   "data":{
+      "external_id":1,
+      "name":"Sender Name",
+      "avatar_url": "https://cdn.pact.im/conversations/avatars/000/000/000/original/open-uri00000000-00000-0p0igg0?0000000000",
+      "channel_id":1,
+      "channel_type":"whatsapp",
+      "created_at":"2017-11-11 12:45:53 UTC",
+      "created_at_timestamp":1603118584,
+      "last_message_at":null,
+      "last_income_message_at":null,
+      "sender_external_id":"79250000001"
+   }
+}
+
+When
+
+Client sends new message first time.
+You sent message to new client. Message was delivered, conversation was created.
+ sender_external_id attribute is available only for whatsapp and instagram conversations.
+Update conversation
+
+The above command returns JSON structured like this:
+{
+   "type":"conversation",
+   "event":"update",
+   "data":{
+      "external_id":1,
+      "name":"Sender Name",
+      "avatar_url": "https://cdn.pact.im/conversations/avatars/000/000/000/original/open-uri00000000-00000-0p0igg0?0000000000",
+      "channel_id":1,
+      "channel_type":"whatsapp",
+      "created_at":"2017-11-11 12:45:53 UTC",
+      "created_at_timestamp":1603118584,
+      "last_message_at":null,
+      "last_income_message_at":null,
+      "sender_external_id":"79250000001"
+   }
+}
+
+When
+
+When conversation with such an sender_external_id already exists and new data is received the sender_name and sender_avatar_url.
+ sender_external_id attribute is available only for whatsapp and instagram conversations.
+New message
+
+The above command returns JSON structured like this:
+{
+   "type":"message",
+   "event":"new",
+   "data":{
+      "external_id":1,
+      "external_public_id":1,
+      "channel_id":1,
+      "channel_type":"whatsapp",
+      "channel":{
+        "id": 1,
+        "type": "whatsapp"
+      },
+      "conversation_id":1,
+      "message":"Message body",
+      "location": {},
+      "income":true,
+      "created_at":"2017-11-11 12:45:53 UTC",
+      "created_at_timestamp":1603118584,
+      "ack":1,
+      "attachments":[],
+      "job_id":1
+   }
+}
+
+When
+
+Client sent new message.
+You sent message to client.
+ Webhook will be sent ONLY when message received/delivered.
+ job_id attribute is available only in async delivery mode.
+Message delivery/read status
+
+The above command returns JSON structured like this:
+{
+    "type": "message",
+    "event": "ack",
+    "data": {
+        "external_id": 1,
+        "channel": {
+            "id": 1,
+            "type": "whatsapp"
+        },
+        "conversation_id": 1,
+        "ack": 3
+    }
+}
+
+When
+
+Message was delivered
+Message was read
+Possible statuses:
+
+-1 : Message is in preparing to deliver state
+` 0 : Message is in delivering` state
+` 1` : Message was sent
+` 2` : Message was delivered
+` 3` : Message was read
+If message in a -1 state - message may not be delivered. You must to care about message delivering by yourself.
+
+Delivery job executed
+
+The above command returns JSON structured like this:
+{
+   "type":"job",
+   "event":"executed",
+   "data":{
+      "id":1,
+      "result":"DELIVERED",
+      "message_id":1,
+      "date":1510404738
+   }
+}
+
+When
+
+You sent message in async mode. Delivery job was executed and delivery result is known.
+Possible results:
+
+DELIVERED
+NOT DELIVERED
+If message is NOT DELIVERED we append reason filed with reason information.
+
+Whatsapp: new QR-code
+
+The above command returns JSON structured like this:
+{
+   "type":"qr_code",
+   "event":"new",
+   "company_id":1,
+   "channel_id":1,
+   "data":"BASE64 QR-CODE image string"
+}
+
+When
+
+You are connecting whatsapp channel in your company
+User logged out in WhatsApp app
+Whatsapp: channel connected sucessfuly
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"information",
+   "data":{
+      "message":"authorized",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+QR-code was scanned successfuly
+
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Whatsapp: phone offline
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"critical",
+   "data":{
+      "message":"phone offline",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+Device with WhatsApp application is unreachable. We can’t work with whatsapp while phone is offline.
+
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Whatsapp: phone online
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"critical",
+   "data":{
+      "message":"phone online",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+Device with WhatsApp application is reachable again.
+
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Whatsapp: channel not available
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"critical",
+   "data":{
+      "message":"unavailable",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+Someone started session at web.whatsapp.com or user similar integration. We can’t work with whatsapp while Whatsapp WEB is open.
+
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Whatsapp: channel disabled
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"critical",
+   "data":{
+      "message":"disabled",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+By some reason whatsapp session is not alive anymore (for example, user exited on the device or whatsapp expired session)
+
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Whatsapp: trying to resume channel work
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"critical",
+   "data":{
+      "message":"trying_resume_work",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+We’re trying to resume work after previous conflict state
+
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Whatsapp: synchronization completed
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"critical",
+   "data":{
+      "message":"synchronized",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "timestamp":1603119138,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+Whatsapp channel was connected and syncronisation was completed
+Syncronisation after work resume
+ date_timestamp is date timestamp; timestamp is callback timestamp.
+Instagram: changed state to disabled
+
+The above command returns JSON structured like this:
+{
+   "type":"system",
+   "severity":"information",
+   "data":{
+      "message":"IG was set DISABLED",
+      "date":"2017-11-11 12:45:53 UTC",
+      "date_timestamp":1603118584,
+      "details":{
+         "entity":"channel",
+         "entity_id":1
+      }
+   }
+}
+
+When
+
+Service message successfully delivered
+Service message delivery failed
+Group chats: new conversation
+
+The above command returns JSON structured like this:
+{
+   "type": "group_conversation",
+   "event": "new",
+   "data":{
+      "name": "Group name",
+      "avatar_url": null,
+      "channel_id": 1,
+      "created_at": "2023-04-28T12:34:01.937Z",
+      "external_id": 1,
+      "channel_type": "whatsapp",
+      "last_message_at": null,
+      "sender_external_id": "120363148147828952",
+      "created_at_timestamp": 1682685241,
+      "last_income_message_at": null
+   }
+}
+
+When
+
+Group chat member sends new message first time.
+You send a message to a group chat. Message was delivered, conversation was created.
+Group chats: new group message
+
+The above command returns JSON structured like this:
+{
+    "type": "group_message",
+    "event": "new",
+    "data": {
+        "ack": 0,
+        "income": true,
+        "channel": {
+            "id": 1,
+            "type": "whatsapp"
+        },
+        "message": "Message body",
+        "location": null,
+        "channel_id": 1,
+        "created_at": "2023-04-05T12:00:52.000Z",
+        "attachments": [],
+        "external_id": 1,
+        "channel_type": "whatsapp",
+        "conversation_id": 1,
+        "external_public_id": "79000000000",
+        "created_at_timestamp": 1680696052,
+        "external_created_at_timestamp": 1680696052
+    }
+}
+
+When
+
+Group chat member sent new message.
+You send a message to a group chat.
+Group chats: message delivery/read status
+
+The above command returns JSON structured like this:
+{
+   "type": "group_message",
+   "event": "ack",
+   "data": {
+      "channel": {
+         "id": 65706,
+         "type": "whatsapp"
+      },
+      "timestamp": 1682658436,
+      "external_id": 1,
+      "participant": "79000000000",
+      "conversation_id": 1,
+      "external_public_id": null,
+      "ack": 3
+   }
+}
+
+When
+
+Message was delivered
+Message was read
+Possible statuses:
+
+` 0 : Message is in delivering` state
+` 1` : Message was sent
+` 2` : Message was delivered
+` 3` : Message was read
+Group chats: new active member
+
+The above command returns JSON structured like this:
+{
+   "type": "group_conversation_contact",
+   "event": "new",
+   "data": {
+      "contact": {
+         "external_public_id": "79000000000"
+      },
+      "channel_id": 65706,
+      "channel_type": "whatsapp",
+      "date_timestamp": 1682652148,
+      "conversation_id": 1
+   }
+}
+
+When
+
+Group chat member sent new message first time.
+Message delivery Jobs
+Get Job details
+
+curl "https://api.pact.im/p1/companies/COMPANY_ID/channels/<CHANNEL_ID>/jobs/<ID>"
+  -H "X-Private-Api-Token: YOUR_API_TOKEN"
+The above command returns JSON structured like this:
+{
+   "status":"ok",
+   "data":{
+      "id":1,
+      "company_id":1,
+      "channel":{
+         "id":1,
+         "type":"whatsapp"
+      },
+      "conversation_id":1,
+      "state":"delivered",
+      "message_id":1,
+      "details":{
+         "result":"DELIVERED"
+      },
+      "created_at":1510393147
+   }
+}
+This endpoint returns information about message delivery job
+
+HTTP Request
+
+GET https://api.pact.im/p1/companies/<COMPANY_ID>/channels/<CHANNEL_ID>/jobs/<ID>
+
+URL Parameters
+
+Parameter	Description
+COMPANY_ID	ID of the company
+CHANNEL_ID	ID of the channel
+ID	ID of the job
+Message may be DELIVERED of NOT DELIVERED.
+
+Message will be NOT DELIVERED if case when:
+
+Integration doesn’t work
+Contact is not present
+Message was rejected by external system
+Private API V2
+
+Authentication V1
+curl -X POST "https://api.pact.im/api/p2/some_endpoint" \
+--header "Content-Type: application/json" \
+--data '{
+    "private_api_token": "YOUR_API_TOKEN",
+    "another_parameter": "value"
+  }'
+curl -X POST "https://api.pact.im/api/p2/some_endpoint" \
+--header "Content-Type: application/json" \
+--header 'X-Private-Api-Token: YOUR_API_TOKEN' \
+--data '{
+    "another_parameter": "value"
+  }'
+curl -X POST "https://api.pact.im/api/p2/some_endpoint?private_api_token=<YOUR_API_TOKEN>" \
+--header "Content-Type: application/json" \
+--data '{
+    "another_parameter": "value"
+  }'
+Example of auth error:
+{
+  "errors": [
+    {
+      "status": 401,
+      "code": "unauthorized",
+      "title": "Unauthorized",
+      "detail": "No token provided"
+    }
+  ]
+}
+To facilitate a smooth transition, we have decided to temporarily keep the old authentication method and label it as V1
+
+For V1 authentication, a private api token will be used as before. Use it for all requests. You can use one of these variants you like:
+
+pass private_api_token param in json payload
+pass X-Private-Api-Token param in headers
+pass private_api_token as url param
+See examples on the right side –>
+
+Authentication V2
+ This version of authentication is not released for now. Please use authentication V1
+curl -X GET "API_ENDPOINT_HERE" \
+--header "X-Api-Token: YOUR_AUTHENTICATION_TOKEN"
+All requests to Pact API must be authenticated.
+
+Pact expects for an authentication token to be included in all API requests to the server in a header that looks like the following:
+
+X-Api-Token: YOUR_AUTHENTICATION_TOKEN
+
+Here are steps to receive your Authentication Token
+
+Set webhook_url in your user settings at https://msg.pact.im/account
+To receive security code on your webhook_url send request
+POST https://api.pact.im/api/verification?locale=ru&source=private_api_v2&phone=YOUR_PHONE
+
+To receive Authentication Token and Refresh token send
+POST https://api.pact.im/api/sign_in?phone=YOUR_PHONE&code=SECURITY_CODE
+
+Authentication Token in Authentication-Token header and Refresh Token in Refresh-Token header (lifespan is 1 hour / 30 days respectivly). Refresh Token is one use only.
+
+To receive new pair of tokens send with a header that looks like this
+
+X-Api-Refresh-Token: Refresh Token
+
+POST https://api.pact.im/api/refresh_token
+
+Messages
+With the help of what is described in this section you can:
+
+Get messages of the conversation
+Get concrete message of the conversation
+Send message to existing conversation
+Write first message (when there is no conversation)
+curl -X GET 'https://api.pact.im/api/p2/conversations/CONVERSATION_ID/messages' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_id": COMPANY_ID,
+    "page": 1
+  }'
+The above command returns JSON structured like this:
+{
+  "messages": [
+    {
+      "id": 13224,
+      "external_id": "b91c9b99-7c24-40a7-8b52-1d80b5b3e158",
+      "company_id": 52204,
+      "conversation_id": 18642850,
+      "contact_id": 549645235,
+      "replied_to_id": null,
+      "created_at": "2024-11-12T06:28:10.907Z",
+      "external_created_at": "2024-11-12T06:28:10.000Z",
+      "income": false,
+      "status": "read",
+      "message": null,
+      "reactions": [],
+      "details": null,
+      "attachments": [
+        {
+          "id": 53431944,
+          "message_id": 13224,
+          "file_name": "p4ct-br0ws3r-v01ce-r3c0rd.ogg",
+          "mime_type": "audio/ogg",
+          "size": 39185,
+          "attachment_url": "https://cdn.pact.im/uploads/storage/attachment/file/a1dd41f80c3ae85beb355a38ea3f5b53.ogg",
+          "push_to_talk": true
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "entries_count": 1,
+    "per_page": 150
+  }
+}
+Get Conversation Messages
+
+Returns paginated messages of the conversation sorted by external_created_at field
+
+By default, 150 messages will be returned per page
+
+Read more about pagination
+
+HTTP Request
+
+GET https://api.pact.im/api/p2/conversations/<CONVERSATION_ID>/messages
+
+URL Parameters
+
+Parameter	Description
+CONVERSATION_ID	ID of the conversation
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+page	false	Must be an integer	Number of page. Returns first page if it is not provided
+per_page	false	Must be an integer	Amount of entries per page will be return (150 by default)
+Response Parameters
+
+Message object
+
+id (Integer) - ID
+external_id (String) - External message ID from provider (it uses for message replies)
+company_id (Integer) - ID of the company
+conversation_id (Integer) - ID of the conversation
+contact_id (Integer) - ID of the message contact
+replied_to_id (String) - External ID of the message to which this message is a reply
+created_at (Time) - Time we created this message in our db
+external_created_at (Time) - Time from provider (as a rule, the time of direct sending of the message)
+income (Boolean) – Whether message is income or outgoing
+status (String) - Status of the message (can be created, sent, delivered, read, error)
+message (String) – Message body
+reactions (Array) – Message reactions
+details (Object) - Data containing reason why message was not delivered (if it is)
+attachments (Array) – Array of message attachment objects (if it has)
+curl -X GET 'https://api.pact.im/api/p2/conversations/CONVERSATION_ID/messages/MESSAGE_ID' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_id": COMPANY_ID
+  }'
+The above command returns JSON structured like this:
+{
+  "message": {
+    "id": 1134326991,
+    "external_id": "34577",
+    "company_id": 86605,
+    "conversation_id": 209752626,
+    "contact_id": 1583160940,
+    "replied_to_id": null,
+    "created_at": "2025-02-05T09:01:48.514Z",
+    "external_created_at": "2025-02-05T09:01:47.000Z",
+    "income": true,
+    "status": "created",
+    "message": "",
+    "reactions": [],
+    "details": null,
+    "attachments": []
+  }
+}
+Get Conversation Message
+
+Returns message of the conversation by id
+
+HTTP Request
+
+GET https://api.pact.im/api/p2/conversations/<CONVERSATION_ID>/messages/<MESSAGE_ID>
+
+URL Parameters
+
+Parameter	Description
+CONVERSATION_ID	ID of the conversation
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+Response Parameters
+
+Message object
+
+curl -X POST 'https://api.pact.im/api/p2/conversations/CONVERSATION_ID/messages' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_id": COMPANY_ID,
+    "text": "test"
+  }'
+The above command returns JSON structured like this:
+{
+  "message": {
+    "id": 239,
+    "external_id": null,
+    "company_id": 52204,
+    "conversation_id": 18642824,
+    "contact_id": 3,
+    "replied_to_id": null,
+    "created_at": "2025-02-13T14:07:51.582Z",
+    "external_created_at": "2025-02-13T14:07:51.000Z",
+    "income": false,
+    "status": "sent",
+    "message": "Hello World!",
+    "reactions": [],
+    "details": null,
+    "attachments": []
+  }
+}
+Send Message To Existing Conversation
+
+Allows to send message to existing conversation
+
+HTTP Request
+
+POST https://api.pact.im/api/p2/conversations/<CONVERSATION_ID>/messages
+
+URL Parameters
+
+Parameter	Description
+CONVERSATION_ID	ID of the conversation
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+text	false	Must be a string	Text of the message
+attachment_ids	false	Must be an array of integers	IDs of the attachments
+replied_to_id	false	Must be a string	External ID of the message to which this message is a reply
+Response Parameters
+
+Message object
+
+curl -X POST 'https://api.pact.im/api/p2/messages' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_id": COMPANY_ID,
+    "text": "test"
+  }'
+The above command returns JSON structured like this:
+{
+  "message": {
+    "id": 239,
+    "external_id": null,
+    "company_id": 52204,
+    "conversation_id": 18642824,
+    "contact_id": 3,
+    "replied_to_id": null,
+    "created_at": "2025-02-13T14:07:51.582Z",
+    "external_created_at": "2025-02-13T14:07:51.000Z",
+    "income": false,
+    "status": "sent",
+    "message": null,
+    "reactions": [],
+    "details": null,
+    "attachments": [
+      {
+        "id": 5,
+        "message_id": 239,
+        "file_name": "5287346531311154701.png",
+        "mime_type": "image/jpeg",
+        "size": 65030,
+        "attachment_url": "https://cdn.pact.im/uploads/storage/attachment/file/a845515c570e285e2ae22d9d493e3abc.png",
+        "preview_url": "https://cdn.pact.im/uploads/storage/attachment/file/small-3a46073e438fa82c6c04fd2ff3e1cfef.png",
+        "aspect_ratio": 0.46,
+        "data": {
+          "width": 591,
+          "height": 1280
+        }
+      }
+    ]
+  }
+}
+Write First Message
+
+Allows to send message when no conversation with this recipient exists
+
+Only these providers available at this moment: whatsapp, telegram_personal, whatsapp_business, vkontakte_direct
+
+HTTP Request
+
+POST https://api.pact.im/api/p2/messages
+
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+provider	true	Must be a string and one of: whatsapp, telegram_personal, whatsapp_business, vkontakte_direct	Provider
+phone	false	Must be a string	Recipient phone
+nickname	false	Must be a string	Recipient nickname (for telegram_personal)
+vkontakte_id	false	Must be a string	Recipient id vkontakte (Mutually exclusive with vkontakte_domain)
+vkontakte_domain	false	Must be a string	Recipient domain vkontakte (for Mutually exclusive with vkontakte_id)
+text	false	Must be a string	Text of the message
+attachment_ids	false	Must be an array of integers	IDs of the attachments
+waba_id	false	Must be a string	WhatsappBusiness template ID
+substitutions	false	Must be an array of strings	WhatsappBusiness template substitutions (if template has them)
+You should use waba_id if you want to write first with whatsapp_business provider. More about waba templates
+
+Response Parameters
+
+Message object
+
+Attachments
+Upload Attachments
+
+
+# "Content-Type: multipart/form-data" - if parameter "file"
+# "Content-Type: application/json" - if parameter "file_url"
+
+curl -X POST 'https://api.pact.im/api/p2/attachments/' \
+--header 'Content-Type: multipart/form-data' \
+--form 'file=@"spec/fixtures/files/1.jpg"' \
+--form 'private_api_token=YOUR_API_TOKEN' \
+--form 'company_id=COMPANY_ID' \
+--form 'metadata[data][width]="1024"' \
+--form 'metadata[data][height]="1280"'
+The above command returns JSON structured like this:
+
+    "attachment": {
+        "id": 53439177,
+        "message_id": null,
+        "file_name": "1.jpg",
+        "mime_type": "image/jpg",
+        "size": 812089,
+        "attachment_url": "The path to the file",
+        "preview_url": "The path to the file",
+        "aspect_ratio": 0.8,
+        "data": {
+            "width": 1024,
+            "height": 1280
+        }
+    }
+
+This endpoint creates an attachment which can be sent in message.
+
+HTTP Request
+
+POST https://api.pact.im/api/p2/attachments/
+
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+file	false	Must be a File. Mutually exclusive with file_url	Attachment file
+file_url	false	Must be a url (http or https). mutually exclusive with file	Attachment file url
+metadata	false	Must be an object	An object that can contain parameters: push_to_talk and data
+Metadata objects:
+
+Parameter	Required	Validations	Description
+push_to_talk	false	Boolean	To send audio files as voice messages
+data	false	Must be an object	Image only, which may contain parameters: height and width. Responsible for the height and width of the image.
+ You cannot upload more than 5 files per second and more than 30 files per minute per user.
+Response Parameters
+
+Attachment object
+
+id (Integer) - ID
+message_id (Integer) - ID of the message
+file_name (String) - Original file name
+mime_type (String) - Mime type (audio/ogg for ex.)
+size (Integer) - File size in bytes
+attachment_url (String) - Url of the file
+preview_url (String) - Url of the image preview (if it is image)
+aspect_ratio (Float) - Aspect ratio (if it is image)
+data (Object) - width and height (if it is image)
+push_to_talk (Boolean) - Voice or just audio file (if it is audio)
+Meta object. More info in the paragraph about pagination
+
+Conversations
+With the help of what is described in this section you can:
+
+Get conversations of the company
+Get concrete conversation of the company
+curl -X GET 'https://api.pact.im/api/p2/conversations' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_id": COMPANY_ID,
+    "page": 1
+  }'
+The above command returns JSON structured like this:
+{
+  "conversations": [
+    {
+      "id": 18642847,
+      "company_id": 52204,
+      "sender_name": "79517591813",
+      "sender_phone": "79517591813",
+      "sender_external_id": "79517591813",
+      "sender_external_public_id": "79517591813",
+      "provider": "whatsapp",
+      "avatar_url": "http://localhost:3000/avatars/original/missing.png",
+      "created_at": "2024-11-11T12:35:57.995Z",
+      "last_updated_at": "2024-11-21T08:37:36.000Z",
+      "last_message_id": 14056,
+      "operational_state": "open",
+      "replied_state": "replied",
+      "group": false
+    },
+    {
+      "id": 18642824,
+      "company_id": 52204,
+      "sender_name": "89045713184 Pact.im",
+      "sender_phone": "79045713184",
+      "sender_external_id": "355620062",
+      "sender_external_public_id": "test_123",
+      "provider": "telegram_personal",
+      "avatar_url": "http://localhost:3000/avatars/original/missing.png",
+      "created_at": "2024-11-07T14:52:55.881Z",
+      "last_updated_at": "2024-11-18T09:01:11.000Z",
+      "last_message_id": 13828,
+      "operational_state": "open",
+      "replied_state": "replied",
+      "group": false
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "entries_count": 2,
+    "per_page": 25
+  }
+}
+Get Conversations
+
+Returns paginated conversations of the company sorted by last_updated_at field
+
+By default, 25 conversations will be returned per page
+
+Read more about pagination
+
+HTTP Request
+
+GET https://api.pact.im/api/p2/conversations
+
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+page	false	Must be an integer	Number of page. Returns first page if it is not provided
+per_page	false	Must be an integer	Amount of entries per page will be return (25 by default)
+Response Parameters
+
+Conversation object
+
+id (Integer) - ID
+company_id (Integer) - ID of the company
+sender_name (String) - Sender or chat (if it’s group) name
+sender_phone (String) - Sender phone (if provider has phones)
+sender_external_id (String) - External ID of the conversation
+sender_external_public_id (String) - Public External ID of the conversation
+provider (String) - Provider
+avatar_url (String) - Sender or chat (if it’s group) avatar url
+created_at (Time) - Time we created this conversation in our db
+last_updated_at (Time) - External created at of the last message in this conversation (null if no messages yet)
+last_message_id (Integer) - ID of the last message (null if no messages yet)
+operational_state (String) - (can be open, archived, blocked)
+replied_state (String) - (can be initialized, replied, unreplied)
+group (Boolean) – Group conversation or not
+Meta object. More info in the paragraph about pagination
+
+curl -X GET 'https://api.pact.im/api/p2/conversations/CONVERSATION_ID' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_id": COMPANY_ID
+  }'
+The above command returns JSON structured like this:
+{
+  "conversation": {
+    "id": 18642847,
+    "company_id": 52204,
+    "sender_name": "79517591813",
+    "sender_phone": "79517591813",
+    "sender_external_id": "79517591813",
+    "sender_external_public_id": "79517591813",
+    "provider": "whatsapp",
+    "avatar_url": "http://localhost:3000/avatars/original/missing.png",
+    "created_at": "2024-11-11T12:35:57.995Z",
+    "last_updated_at": "2024-11-21T08:37:36.000Z",
+    "last_message_id": 14056,
+    "operational_state": "open",
+    "replied_state": "replied",
+    "group": false
+  }
+}
+Get Conversation Details
+
+Returns conversation of the company by id
+
+HTTP Request
+
+GET https://api.pact.im/api/p2/conversations/<CONVERSATION_ID>
+
+URL Parameters
+
+Parameter	Description
+CONVERSATION_ID	ID of the conversation
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_id	true	Must be an integer	ID of the company
+Response Parameters
+
+Conversation object
+
+Pagination
+Example of response with pagination:
+{
+  "companies": [
+    {
+      "id": 26,
+      "name": "Company 26"
+    },
+    {
+      "id": 27,
+      "name": "Company 27"
+    },
+    {
+      "id": 28,
+      "name": "Company 28"
+    },
+    {
+      "id": 29,
+      "name": "Company 29"
+    }
+  ],
+  "meta": {
+    "page": 2,
+    "entries_count": 4,
+    "per_page": 25
+  }
+}
+Api V2 supports pagination. Pagination is a method used to divide large sets of data into smaller, more manageable chunks, which are returned page by page. This helps improve performance and reduces the amount of data transferred in a single request
+
+If there are more results than can fit on a single page, you can request additional pages by increasing the page parameter. The response will include metadata indicating the current page, the number of records on that page, and the total number of records per page
+
+For example, if there are 100 records and per_page is set to 25, there will be 4 pages available. You can navigate through the pages by changing the page parameter in your request
+
+Pagination Parameters In Request
+
+Parameter	Required	Validations	Description
+page	false	Must be an integer	Number of page. Returns first page if it is not provided
+per_page	false	Must be an integer	Amount of entries per page will be return
+Response Parameters
+
+Meta object
+
+page (Integer) - Number of current page
+entries_count (Integer) - Number of returned entries
+per_page (Integer) - Entries per page
+ If the value of per_page less than entries_count value, then the page is the last one and there are no more entries
+Request Rate Limits
+Error like this will be returned when request limit was overed:
+{
+  "errors": [
+    {
+      "status": 429,
+      "code": "too_many_requests",
+      "title": "Too many requests error",
+      "detail": "Please wait for 50 seconds"
+    }
+  ]
+}
+Api V2 has request rate limits
+
+To ensure system stability, prevent abuse, and optimize performance, our API enforces rate limits. These limits control the number of requests a single user can make within a specific time frame
+
+Why Are Rate Limits Necessary? Rate limits help to: Protect the system from overload – limiting request frequency prevents sudden spikes in server load. Prevent abuse. Ensure fair resource distribution – all users get equal access to the API, preventing excessive usage by a single client from affecting others. Optimize performance – keeps the server running smoothly and predictably without sudden performance drops. If the rate limit is exceeded, the server will return an error with the HTTP status code 429 Too Many Requests. In such cases, it is recommended to retry the request after some time
+
+Some endpoints have several rate limits to control both short-term and long-term request bursts. This multi-limit approach balances responsiveness and fairness, allowing high-frequency but controlled API usage
+
+The rate limits depending on the type of request:
+
+Get messages of the conversation:
+
+Maximum 20 requests per minute
+Get concrete message of the conversation:
+
+Maximum 20 requests per minute
+Get conversations of the company:
+
+Maximum 10 requests per minute
+Get concrete conversation of the company:
+
+Maximum 10 requests per minute
+Send message to existing conversation:
+
+Maximum 5 requests per second
+Maximum 30 requests per minute
+Write first message:
+
+Maximum 5 requests per second
+Maximum 30 requests per minute
+Get waba templates:
+
+Maximum 20 requests per minute
+Webhooks
+Webhook when message was delivered:
+{
+  "event": "update",
+  "type": "message",
+  "object": {
+    "id": 22891,
+    "external_id": "wamid.HBgLNzk1MTY1ODE2MTIVAgARGBI3NzUyM0MxNkYxRjFGM0U0NkMA",
+    "company_id": 52249,
+    "conversation_id": 18643195,
+    "contact_id": 549645443,
+    "replied_to_id": null,
+    "created_at": "2025-02-17T14:46:29.074Z",
+    "external_created_at": "2025-02-17T14:46:29.000Z",
+    "income": false,
+    "status": "delivered",
+    "message": "Текст в заголовке\nШаблон с кнопками и текстом в заголовке",
+    "reactions": [],
+    "details": null,
+    "attachments": []
+  }
+}
+With Api V2 release we are starting to send new type of webhooks. More standardized, opimized and informative
+
+Webhook Parameters
+
+event (String) - Type of the event (create, update, delete)
+type (String) - Object type (message, conversation, …)
+object (Object) - Object with its fields
+Message Webhooks:
+
+When a message is sent (after sending message to existing conversation for ex), the service triggers a webhook with the create event and the status sent. At this stage, external_id is null because we have not received answer from provider at this moment
+
+Once the message is successfully sent, a webhook with the update event is triggered, where:
+
+The status is updated to delivered, external_id is assigned
+
+If a message fails to send, the status is updated to error, and the details field contains the reason for the failure. In this case, the message failed to send due to recipient does not have whatsapp_business
+
+For incoming messages you will receive only one webhook with event create and message status created
+
+Webhook Message Object Parameters
+
+Message object
+
+Webhook when connecting a messenger (without pages):
+{
+  "event": "update",
+  "type": "auth",
+  "object": {
+    "id": 1,
+    "company_id": 1,
+    "provider": "whatsapp",
+    "state": "enabled",
+    "phone_number": "79000000000",
+    "created_at": "2025-06-25T08:02:01.578Z",
+    "updated_at": "2025-06-25T08:02:30.904Z",
+    "sync_messages_at": "2025-06-24T08:02:01.570Z"
+  }
+}
+Auth Webhooks:
+
+This webhook is triggered whenever an auth object undergoes a significant change. The following events are supported:
+
+Created (“event”: “create”) - Triggered when a new auth is created.
+
+Connected (“event”: “update”, “state”: “enabled”) - Triggered when the auth is successfully connected(for example, when WhatsApp is successfully connected)
+
+Disconnected ( “event”: “update”, “state”: “disabled”) - Triggered when the auth is disconnected from the external service.
+
+Deleted (“event”: “delete”) - Triggered when the auth is permanently deleted.
+
+Webhook Auth Object Parameters
+
+Auth object
+
+Waba Templates
+With the help of what is described in this section you can:
+
+Get waba templates of user’s companies
+curl -X GET 'https://api.pact.im/api/p2/waba_templates' \
+--header 'Content-Type: application/json' \
+--data '{
+    "private_api_token": YOUR_API_TOKEN,
+    "company_ids": [<COMPANY_ID>],
+    "sort": {"position": "asc"},
+    "per_page": 50
+  }'
+The above command returns JSON structured like this:
+{
+  "waba_templates": [
+    {
+      "id": 1,
+      "name": "fuga",
+      "body": "Temporibus et rerum optio.",
+      "waba_id": "cjw8av3d2l",
+      "substitutions_count": 0,
+      "header_content_type": null,
+      "company_id": 52204,
+      "header": null,
+      "namespace": null,
+      "created_at": "2025-05-21T00:29:29.313Z",
+      "position": 1
+    },
+    {
+      "id": 2,
+      "name": "with_params",
+      "body": "Привет, {{1}}. Это тест параметров. {{2}} - тест второго параметра.",
+      "waba_id": "with_params",
+      "substitutions_count": 2,
+      "header_content_type": null,
+      "company_id": 52204,
+      "header": null,
+      "namespace": "ab06e962_230a_4e22_a3e2_a17bb8951856",
+      "created_at": "2025-05-21T02:13:08.232Z",
+      "position": 2
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "entries_count": 2,
+    "per_page": 25
+  }
+}
+Get Waba Templates
+
+Returns paginated waba templates of user’s companies sorted by created_at: desc field by default. You can specify sort param. You can specify companies
+
+By default, 25 waba templates will be returned per page
+
+Read more about pagination
+
+HTTP Request
+
+GET https://api.pact.im/api/p2/waba_templates
+
+Body Parameters (Json)
+
+Parameter	Required	Validations	Description
+private_api_token	true	Must be a string	YOUR_API_TOKEN
+company_ids	false	Must be an array of integers	IDs of the companies. You will get waba templates for all companies if not specified
+sort	false	Must be an object	You can sort by created_at or position fields, by desc or asc orders. Example: {"position": "asc"}. Sorted by created_at: desc if not specified.
+page	false	Must be an integer	Number of page. Returns first page if it is not provided
+per_page	false	Must be an integer	Amount of entries per page will be return (25 by default)
+Response Parameters
+
+Waba template object
+
+id (Integer) - ID
+name (String) - Waba template name
+body (String) - Template text
+waba_id (String) - ID of the Waba template on the WhatsappBusiness side
+substitutions_count (Integer) - Count of substitutions
+header_content_type (String) - Type of header content [“video”, “document”, “text”, “image”]
+company_id (Integer) - ID of the company
+header (String) - Header text
+namespace (String) - Namespace
+created_at (Time) - Template create time
+position (Integer) - Position of template in company
+Meta object. More info in the paragraph about pagination
+
+Auths
+Webhook without page:
+{
+  "event": "create",
+  "type": "auth",
+  "object": {
+    "id": 69174,
+    "company_id": 52368,
+    "provider": "whatsapp",
+    "state": "enabled",
+    "phone_number": "79000000000",
+    "created_at": "2025-06-23T14:33:47.886Z",
+    "updated_at": "2025-06-23T14:33:47.886Z",
+    "sync_messages_at": "2025-06-22T14:33:47.877Z"
+  }
+}
+Response Parameters
+
+Auth object
+
+id (Integer) - ID Auth
+company_id (Integer) - ID of the company
+provider (String) - Name of the connected messenger
+state (String ) - Connection status, can be disabled or enabled
+phone_number (Integer) - Phone number of the connected messenger (only available for messengers that transmit the account’s phone number)
+username (String ) - Username of the connected messenger (only available for messengers that transmit the account’s username)
+created_at (Time) - Auth connection time
+updated_at (Time) - Last update time
+sync_messages_at (Time) - The time from which the synchronization of messages began
+pages (Object) - Some providers may provide a list of pages that can be connected to. Additional parameters will be passed for this purpose.
+Webhook with pages:
+{
+  "event": "update",
+  "type": "auth",
+  "object": {
+    "id": 69167,
+    "company_id": 52368,
+    "provider": "vkontakte",
+    "state": "enabled",
+    "created_at": "2025-06-20T08:10:20.517Z",
+    "updated_at": "2025-06-23T15:31:00.275Z",
+    "sync_messages_at": "2025-06-20T08:10:36.951Z",
+    "pages": [
+      {
+        "id": 30190,
+        "auth_id": 69167,
+        "company_id": 52368,
+        "external_id": "229559196",
+        "name": "Test1",
+        "enabled": true
+      },
+      {
+        "id": 30191,
+        "auth_id": 69167,
+        "company_id": 52368,
+        "external_id": "223020390",
+        "name": "Test2",
+        "enabled": false
+      }
+    ]
+  }
+}
+Pages object
+
+id (Integer) - Page ID
+auth_id (Integer) - Auth id to which the page belongs
+company_id (Integer) - Company id to which the page belongs
+external_id (Integer) - External page Id
+name (String) - Page title
+enabled (String) - Page connection status, can be true or false
+Errors
+
+The Pact API uses the following error codes:
+
+HTTP Status	Meaning
+400	Bad Request – Your request sucks
+401	Unauthorized – Your API key is wrong
+402	Payment Required – Paywoll enabled for the company, you must pay before doing API requests
+403	Forbidden – The endpoint is unavailable for you
+404	Not Found – The specified resource could not be found
+405	Method Not Allowed – You tried to access with an invalid method
+406	Not Acceptable – You requested a format that isn’t json
+410	Gone – The requested resource has been removed from our servers
+418	I’m a teapot
+429	Too Many Requests – You’re requesting too many requests! Slow down!
+500	Internal Server Error – We had a problem with our server. Try again later.
+502	Bad Gateway – We’re temporarially offline for maintanance. Please try again later.
+503	Service Unavailable – We’re temporarially offline for maintanance. Please try again later.
+Terms and conditions
+
+You will NOT use this API for spam, massive sending, etc.
+You will NOT use this API if you’re NOT agree with these terms and conditions.
+We have the right to block any user of Pact.im API (without refund) if these conditions are not met.
+Legal
+
+This API is in no way affiliated with, authorized, maintained, sponsored or endorsed by
+
+WhatsApp or any of its affiliates or subsidiaries
+Instagram or any of its affiliates or subsidiaries
+This is an independent and unofficial API. Use at your own risk.
+
+shellphp
