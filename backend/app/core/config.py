@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
     
+    # LangSmith (опционально для трейсинга)
+    langsmith_tracing: Optional[str] = os.getenv("LANGSMITH_TRACING")
+    langsmith_api_key: Optional[str] = os.getenv("LANGSMITH_API_KEY")
+    langchain_tracing_v2: Optional[str] = os.getenv("LANGCHAIN_TRACING_V2", os.getenv("LANGSMITH_TRACING"))
+    langchain_endpoint: Optional[str] = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+    langchain_api_key: Optional[str] = os.getenv("LANGCHAIN_API_KEY", os.getenv("LANGSMITH_API_KEY"))
+    langchain_project: Optional[str] = os.getenv("LANGCHAIN_PROJECT", "farmer-crm-agents")
+    
     # Google Sheets (опционально)
     google_sheets_spreadsheet_id: str = ""
     google_sheets_credentials_file: str = ""

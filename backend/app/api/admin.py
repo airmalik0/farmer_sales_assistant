@@ -65,13 +65,13 @@ async def sync_conversations(db: Session = Depends(get_db)):
         page = 1
         
         while True:
-            # Получаем беседы из Pact
+            # Получаем беседы из Pact API V2
             pact_response = await PactService.get_conversations(page=page, per_page=25)
             
-            if not pact_response or not pact_response.get("data"):
+            if not pact_response or not pact_response.get("conversations"):
                 break
                 
-            conversations = pact_response["data"]
+            conversations = pact_response["conversations"]
             total_conversations += len(conversations)
             
             for conversation_data in conversations:

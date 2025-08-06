@@ -11,7 +11,7 @@ class Client(Base):
     
     # Pact данные (основные идентификаторы)
     pact_conversation_id = Column(Integer, unique=True, nullable=False, index=True)
-    pact_contact_id = Column(Integer, nullable=False)
+    pact_contact_id = Column(Integer, nullable=True)  # Может быть null пока не придет первое сообщение
     pact_company_id = Column(Integer, nullable=False)
     
     # Идентификаторы контакта

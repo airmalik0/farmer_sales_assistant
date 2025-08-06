@@ -201,7 +201,7 @@ async def _handle_message_webhook(db: Session, event: str, message_data: Dict[st
             logger.info(f"Создано сообщение: {message.id}")
             
             # Обновляем contact_id клиента если он еще не установлен
-            if client.pact_contact_id == 0 and message_data.get('contact_id'):
+            if client.pact_contact_id is None and message_data.get('contact_id'):
                 client.pact_contact_id = message_data.get('contact_id')
                 db.commit()
             
@@ -333,7 +333,7 @@ async def send_pact_message(
         # Импортируем здесь чтобы избежать циклических импортов
         from ..services.pact_service import PactService
         
-        # Отправляем сообщение через Pact
+        # Отправляем сообщение через Pact API V2
         result = await PactService.send_message_to_conversation(
             conversation_id=client.pact_conversation_id,
             text=content
@@ -342,14 +342,14 @@ async def send_pact_message(
         if not result:
             raise HTTPException(status_code=500, detail="Не удалось отправить сообщение через Pact")
         
-        # Создаем запись о сообщении в БД
+        # Создаем запись о сообщении в БД (API V2 возвращает объект message)
         message_data = {
             'id': result.get('id'),
             'conversation_id': client.pact_conversation_id,
-            'body': content,
-            'type': 'text',
-            'sender': 'bot',
-            'delivered': True
+            'message': content,  # В API V2 поле называется message, не body
+            'income': False,  # Исходящее сообщение
+            'status': result.get('status', 'sent'),
+            'contact_id': result.get('contact_id')
         }
         
         message = MessageService.create_message_from_pact(db, client_id, message_data)

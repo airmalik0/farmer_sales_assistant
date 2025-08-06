@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class ClientBase(BaseModel):
     # Pact данные
     pact_conversation_id: int
-    pact_contact_id: int
+    pact_contact_id: Optional[int] = None
     pact_company_id: int
     
     # Идентификаторы контакта

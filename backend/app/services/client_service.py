@@ -78,7 +78,7 @@ class ClientService:
         
         db_client = Client(
             pact_conversation_id=conversation_data.get("id"),  # В реальных вебхуках это 'id'
-            pact_contact_id=0,  # Contact ID приходит только в message вебхуках, используем 0 как значение по умолчанию
+            pact_contact_id=None,  # Contact ID приходит только в message вебхуках
             pact_company_id=conversation_data.get("company_id", settings.pact_company_id),
             sender_external_id=conversation_data.get("sender_external_id"),
             sender_external_public_id=conversation_data.get("sender_external_public_id", conversation_data.get("sender_external_id")),

@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 class PactService:
     """Сервис для работы с Pact API V2"""
     
-    BASE_URL = settings.pact_api_url
+    BASE_URL = "https://api.pact.im"  # Base Pact API URL
     API_TOKEN = settings.pact_api_token
+    COMPANY_ID = settings.pact_company_id
     
     # Rate limiting: 5 запросов в секунду, 30 в минуту
     _send_semaphore = asyncio.Semaphore(5)
@@ -143,17 +144,19 @@ class PactService:
     
     @staticmethod 
     async def get_conversations(page: int = 1, per_page: int = 25) -> Optional[Dict]:
-        """Получение списка бесед"""
+        """Получение списка бесед через Pact API"""
         
         await PactService._wait_for_rate_limit()
         
-        url = f"{PactService.BASE_URL}/v1/companies/conversations"
+        # Используем правильный V1 API endpoint с company_id
+        url = f"{PactService.BASE_URL}/p1/companies/{PactService.COMPANY_ID}/conversations"
         headers = {
             "X-Private-Api-Token": PactService.API_TOKEN
         }
         params = {
             "page": page,
-            "per_page": per_page
+            "per": per_page,
+            "sort_direction": "desc"
         }
         
         try:
@@ -163,7 +166,7 @@ class PactService:
                 if response.status_code == 200:
                     return response.json()
                 else:
-                    logger.error(f"Ошибка получения бесед: {response.status_code}")
+                    logger.error(f"Ошибка получения бесед: {response.status_code} - {response.text}")
                     
         except Exception as e:
             logger.error(f"Ошибка получения бесед: {e}")
@@ -206,5 +209,41 @@ class PactService:
                     
         except Exception as e:
             logger.error(f"Ошибка загрузки вложения: {e}")
+        
+        return None
+    
+    @staticmethod
+    async def get_conversation_messages(
+        conversation_id: int,
+        page: int = 1, 
+        per_page: int = 150
+    ) -> Optional[Dict]:
+        """Получение сообщений беседы через Pact API"""
+        
+        await PactService._wait_for_rate_limit()
+        
+        # Используем правильный V1 API endpoint
+        url = f"{PactService.BASE_URL}/p1/companies/{PactService.COMPANY_ID}/conversations/{conversation_id}/messages"
+        headers = {
+            "X-Private-Api-Token": PactService.API_TOKEN
+        }
+        
+        params = {
+            "page": page,
+            "per": per_page,
+            "sort_direction": "desc"
+        }
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, params=params)
+                
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    logger.error(f"Ошибка получения сообщений: {response.status_code} - {response.text}")
+                    
+        except Exception as e:
+            logger.error(f"Ошибка получения сообщений: {e}")
         
         return None 
