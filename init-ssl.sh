@@ -13,7 +13,7 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
     email="$LETSENCRYPT_EMAIL"
 else
-    email="your-email@example.com" # Замените на ваш email
+    email="maik.yuldashev2004@gmail.com"
 fi
 
 if [ -d "$data_path" ]; then
@@ -42,7 +42,7 @@ docker-compose run --rm --entrypoint "\
     -subj '/CN=localhost'" certbot
 echo
 
-echo "### Запуск nginx с временной конфигурацией ..."
+echo "### Запуск nginx ..."
 docker-compose up --force-recreate -d nginx
 echo
 
@@ -78,8 +78,7 @@ docker-compose run --rm --entrypoint "\
     --force-renewal" certbot
 echo
 
-echo "### Обновление nginx конфигурации на SSL ..."
-docker-compose exec nginx cp /etc/nginx/nginx-ssl.conf /etc/nginx/nginx.conf
-docker-compose exec nginx nginx -s reload
+echo "### Перезапуск nginx с SSL сертификатами ..."
+docker-compose restart nginx
 
-echo "### SSL сертификаты успешно получены!" 
+echo "### SSL сертификаты успешно получены и nginx перезапущен!" 
