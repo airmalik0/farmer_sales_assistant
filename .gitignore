@@ -228,3 +228,6 @@ frontend/.cache/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Alembic migrations
+backend/alembic/versions/
