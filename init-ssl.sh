@@ -13,7 +13,7 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
     email="$LETSENCRYPT_EMAIL"
 else
-    email="maik.yuldashev2004@gmail.com"
+    email="your-email@example.com" # Замените на ваш email
 fi
 
 if [ -d "$data_path" ]; then
