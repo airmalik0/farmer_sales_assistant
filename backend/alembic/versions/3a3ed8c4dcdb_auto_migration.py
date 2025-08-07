@@ -1,8 +1,8 @@
-"""empty message
+"""Auto migration
 
-Revision ID: bd01e91491f8
+Revision ID: 3a3ed8c4dcdb
 Revises: 
-Create Date: 2025-08-03 19:30:32.854845
+Create Date: 2025-08-07 17:36:48.027534
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'bd01e91491f8'
+revision: str = '3a3ed8c4dcdb'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table('clients',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('pact_conversation_id', sa.Integer(), nullable=False),
-    sa.Column('pact_contact_id', sa.Integer(), nullable=False),
+    sa.Column('pact_contact_id', sa.Integer(), nullable=True),
     sa.Column('pact_company_id', sa.Integer(), nullable=False),
     sa.Column('sender_external_id', sa.String(), nullable=False),
     sa.Column('sender_external_public_id', sa.String(), nullable=True),

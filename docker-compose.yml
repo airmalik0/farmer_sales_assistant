@@ -20,8 +20,8 @@ services:
 
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       - DATABASE_URL=postgresql://postgres:farmer_postgres_password@postgres:5432/farmer_crm
     env_file:
@@ -60,11 +60,11 @@ services:
 
   frontend:
     build: ./frontend
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
-      - VITE_API_URL=http://backend:8000
-      - VITE_API_BASE_URL=http://backend:8000/api/v1
+      - VITE_API_URL=https://autodealer.quasar79.com
+      - VITE_API_BASE_URL=https://autodealer.quasar79.com/api/v1
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -73,13 +73,42 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    # Для разработки не добавляем restart policy
+    restart: unless-stopped
     command: npm run dev
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-init.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx-ssl.conf:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/certbot
+    networks:
+      - farmer_network
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/certbot
+    command: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
 
 
 
 volumes:
   postgres_data:
+  certbot-etc:
+  certbot-var:
+  web-root:
 
 networks:
   farmer_network:
