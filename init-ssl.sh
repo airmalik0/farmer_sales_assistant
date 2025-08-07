@@ -13,7 +13,7 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
     email="$LETSENCRYPT_EMAIL"
 else
-    email="your-email@example.com" # Замените на ваш email
+    email="maik.yuldashev2004@gmail.com"
 fi
 
 if [ -d "$data_path" ]; then
@@ -35,6 +35,7 @@ echo "### Создание dummy сертификата для $domains ..."
 path="/etc/letsencrypt/live/$domains"
 mkdir -p "$data_path/conf/live/$domains"
 docker-compose run --rm --entrypoint "\
+  mkdir -p '$path' && \
   openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1\
     -keyout '$path/privkey.pem' \
     -out '$path/fullchain.pem' \
@@ -70,7 +71,6 @@ esac
 
 docker-compose run --rm --entrypoint "\
   certbot certonly --webroot -w /var/www/certbot \
-    $staging_arg \
     $email_arg \
     $domain_args \
     --rsa-key-size $rsa_key_size \
