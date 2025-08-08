@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -6,39 +8,24 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: farmer_postgres_password
     ports:
-      - "5433:5432"  # Используем 5433 чтобы не конфликтовать с локальным PostgreSQL
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - farmer_network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   backend:
     build: ./backend
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:farmer_postgres_password@postgres:5432/farmer_crm
     env_file:
       - .env
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     volumes:
       - ./backend:/app
-    networks:
-      - farmer_network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   bot:
@@ -49,30 +36,24 @@ services:
     env_file:
       - .env
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     volumes:
       - ./bot:/app
-    networks:
-      - farmer_network
     restart: unless-stopped
     command: python main.py
 
   frontend:
     build: ./frontend
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     environment:
-      - VITE_API_URL=https://autodealer.quasar79.com
-      - VITE_API_BASE_URL=https://autodealer.quasar79.com/api/v1
+      - VITE_API_URL=http://backend:8000
+      - VITE_API_BASE_URL=http://backend:8000/api/v1
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    networks:
-      - farmer_network
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     restart: unless-stopped
     command: npm run dev
 
@@ -80,37 +61,12 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - web-root:/var/www/certbot
-    networks:
-      - farmer_network
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
       - frontend
     restart: unless-stopped
 
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
-      - web-root:/var/www/certbot
-    entrypoint: "/bin/sh"
-    command: ["-c", "trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;"]
-    restart: unless-stopped
-
-
-
 volumes:
   postgres_data:
-  certbot-etc:
-  certbot-var:
-  web-root:
-
-networks:
-  farmer_network:
-    driver: bridge
