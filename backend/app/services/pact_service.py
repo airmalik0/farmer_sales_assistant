@@ -52,7 +52,7 @@ class PactService:
         
         await PactService._wait_for_rate_limit()
         
-        url = f"{PactService.BASE_URL}/v1/companies/messages"
+        url = f"{PactService.BASE_URL}/v1/companies/{PactService.COMPANY_ID}/messages"
         headers = {
             "X-Private-Api-Token": PactService.API_TOKEN,
             "Content-Type": "application/json"
@@ -101,7 +101,7 @@ class PactService:
         
         await PactService._wait_for_rate_limit()
         
-        url = f"{PactService.BASE_URL}/v1/companies/channels/messages"
+        url = f"{PactService.BASE_URL}/v1/companies/{PactService.COMPANY_ID}/channels/messages"
         headers = {
             "X-Private-Api-Token": PactService.API_TOKEN,
             "Content-Type": "application/json"
