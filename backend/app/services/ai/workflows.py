@@ -94,7 +94,7 @@ class ClientAnalysisWorkflow:
                 logger.info(info_msg)
                 return {"info": info_msg}
 
-            client_name = client.first_name or f"ID {client.telegram_id}"
+            client_name = client.name or f"ID {client.pact_conversation_id}"
             results = {}
             
             # Анализ досье
@@ -309,7 +309,7 @@ class ClientAnalysisWorkflow:
                 logger.info(f"Нет сообщений для клиента {client_id}")
                 return f"Нет сообщений для клиента {client_id}"
 
-            client_name = client.first_name or f"ID {client.telegram_id}"
+            client_name = client.name or f"ID {client.pact_conversation_id}"
 
             # Запускаем анализ досье
             dossier_result = dossier_agent.analyze(client_id, client_name, messages)
@@ -356,7 +356,7 @@ class ClientAnalysisWorkflow:
                 logger.info(f"Нет сообщений для клиента {client_id}")
                 return f"Нет сообщений для клиента {client_id}"
 
-            client_name = client.first_name or f"ID {client.telegram_id}"
+            client_name = client.name or f"ID {client.pact_conversation_id}"
 
             # Запускаем анализ автомобильных интересов
             car_interest_result = car_interest_agent.analyze(client_id, client_name, messages)
@@ -436,7 +436,7 @@ class ClientAnalysisWorkflow:
                 logger.info(f"Нет сообщений для клиента {client_id}")
                 return f"Нет сообщений для клиента {client_id}"
 
-            client_name = client.first_name or f"ID {client.telegram_id}"
+            client_name = client.name or f"ID {client.pact_conversation_id}"
 
             # Запускаем анализ задач
             task_result = task_agent.analyze(client_id, client_name, messages)
