@@ -151,3 +151,12 @@ async def notify_task_update(client_id: int, task_data: dict):
     logger.info(f"WebSocket: Уведомление отправляется {len(manager.active_connections)} активным соединениям")
     await manager.broadcast(message)
     logger.info(f"WebSocket: Уведомление о задачах отправлено")
+
+
+async def notify_new_client(client_data: dict):
+    """Функция для уведомления о появлении нового клиента"""
+    message = json.dumps({
+        "type": "new_client",
+        "data": client_data
+    })
+    await manager.broadcast(message)

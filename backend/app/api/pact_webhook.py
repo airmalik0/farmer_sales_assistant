@@ -5,7 +5,7 @@ from ..services.client_service import ClientService
 from ..services.message_service import MessageService
 from ..services.telegram_admin_service import TelegramAdminService
 from ..services.ai import ClientAnalysisWorkflow
-from .websocket import notify_new_message
+from .websocket import notify_new_message, notify_new_client
 from ..core.config import settings
 from ..models.message import Message
 import json
@@ -133,26 +133,23 @@ async def _handle_conversation_webhook(db: Session, event: str, conversation_dat
         # Ищем существующего клиента
         client = ClientService.find_client_by_pact_conversation(db, conversation_id)
         
-        if event in ['create', 'new'] and not client:
-            # Создаем нового клиента
+        # Если клиента нет — создаём его и на update-событии тоже
+        if not client and event in ['create', 'new', 'update']:
             client = ClientService.create_client_from_pact_conversation(db, conversation_data)
-            logger.info(f"Создан новый клиент: {client.id}")
+            logger.info(f"Создан новый клиент: {client.id} (event={event})")
             
             # Уведомляем админа
             await TelegramAdminService.send_new_client_notification(client)
             
-            # Отправляем WebSocket уведомление
-            await notify_new_message({
-                "type": "new_client",
-                "data": {
-                    "client_id": client.id,
-                    "provider": client.provider,
-                    "name": client.name
-                }
+            # Отправляем WebSocket уведомление о новом клиенте
+            await notify_new_client({
+                "client_id": client.id,
+                "provider": client.provider,
+                "name": client.name
             })
-            
+        
+        # Если клиент есть — обновляем на update
         elif event == 'update' and client:
-            # Обновляем существующего клиента
             client = ClientService.update_client_from_pact(db, client, conversation_data)
             logger.info(f"Обновлен клиент: {client.id}")
             
@@ -210,13 +207,10 @@ async def _handle_message_webhook(db: Session, event: str, message_data: Dict[st
             
             # Отправляем WebSocket уведомление
             await notify_new_message({
-                "type": "new_message", 
-                "data": {
-                    "client_id": client.id,
-                    "message_id": message.id,
-                    "content": message.content,
-                    "sender": message.sender.value
-                }
+                "client_id": client.id,
+                "message_id": message.id,
+                "content": message.content,
+                "sender": message.sender.value
             })
             
             # Запускаем AI анализ для входящих сообщений
@@ -356,13 +350,11 @@ async def send_pact_message(
         
         # Уведомляем через WebSocket
         await notify_new_message({
-            "type": "message_sent",
-            "data": {
-                "client_id": client_id,
-                "message_id": message.id,
-                "content": content,
-                "sender": "assistant"
-            }
+            "client_id": client_id,
+            "message_id": message.id,
+            "content": content,
+            "sender": "assistant",
+            "event": "message_sent"
         })
         
         return {
