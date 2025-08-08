@@ -55,10 +55,10 @@ class PactService:
         # Используем правильный API V2 endpoint
         url = f"{PactService.BASE_URL}/api/p2/conversations/{conversation_id}/messages"
         headers = {
-            "X-Private-Api-Token": PactService.API_TOKEN,
             "Content-Type": "application/json"
         }
         
+        # Для API V2 передаем токен в теле запроса, не в заголовке
         payload = {
             "private_api_token": PactService.API_TOKEN,
             "company_id": PactService.COMPANY_ID
