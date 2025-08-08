@@ -169,28 +169,33 @@ async def _handle_message_webhook(db: Session, event: str, message_data: Dict[st
     # В реальных вебхуках conversation_id находится прямо в объекте message
     conversation_id = message_data.get('conversation_id')
     
-    # ID сообщения - в реальных вебхуках это просто 'id'
-    message_id = message_data.get('id')
+    # Эффективный ID сообщения: берем id, либо external_id (в "new" событиях)
+    effective_message_id = message_data.get('id') or message_data.get('external_id')
     
     if not conversation_id:
         logger.warning("Отсутствует conversation_id в message webhook")
         return
         
-    logger.info(f"Обрабатываем {event} message: {message_id} в conversation: {conversation_id}")
+    logger.info(f"Обрабатываем {event} message: {effective_message_id} в conversation: {conversation_id}")
     
     try:
         # Ищем клиента
         client = ClientService.find_client_by_pact_conversation(db, conversation_id)
         if not client:
-            logger.warning(f"Клиент не найден для conversation_id: {conversation_id}")
-            return
+            # Клиент ещё не создан (например, придет позже conversation update) — инициируем ретрай через верхний обработчик
+            raise Exception(f"Клиент не найден для conversation_id: {conversation_id}")
+        
+        # Если у нас нет id в данных (например, для event=new), проставим его из effective_message_id
+        if effective_message_id and not message_data.get('id'):
+            message_data = dict(message_data)
+            message_data['id'] = int(effective_message_id)
         
         if event in ['create', 'new']:
             # Проверяем, не существует ли уже это сообщение
-            if message_id:
-                existing_message = MessageService.find_message_by_pact_id(db, int(message_id))
+            if effective_message_id:
+                existing_message = MessageService.find_message_by_pact_id(db, int(effective_message_id))
                 if existing_message:
-                    logger.info(f"Сообщение {message_id} уже существует, пропускаем")
+                    logger.info(f"Сообщение {effective_message_id} уже существует, пропускаем")
                     return
             
             # Создаем новое сообщение
@@ -221,12 +226,24 @@ async def _handle_message_webhook(db: Session, event: str, message_data: Dict[st
                 except Exception as e:
                     logger.error(f"Ошибка AI анализа сообщения {message.id}: {e}")
             
-        elif event == 'update' and message_id:
-            # Обновляем существующее сообщение
-            message = MessageService.find_message_by_pact_id(db, int(message_id))
+        elif event == 'update' and effective_message_id:
+            # Обновляем существующее сообщение или создаем, если его еще нет
+            message = MessageService.find_message_by_pact_id(db, int(effective_message_id))
             if message:
                 message = MessageService.update_message_from_pact(db, message, message_data)
                 logger.info(f"Обновлено сообщение: {message.id}")
+            else:
+                # Сообщение отсутствует (скорее всего create/new пришли раньше без клиента) — создаем его сейчас
+                message = MessageService.create_message_from_pact(db, client.id, message_data)
+                logger.info(f"Создано сообщение (по update): {message.id}")
+                
+                # Отправляем WebSocket уведомление о новом сообщении
+                await notify_new_message({
+                    "client_id": client.id,
+                    "message_id": message.id,
+                    "content": message.content,
+                    "sender": message.sender.value
+                })
                 
     except Exception as e:
         logger.error(f"Ошибка обработки message webhook: {e}")
