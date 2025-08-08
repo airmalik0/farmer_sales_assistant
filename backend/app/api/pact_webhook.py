@@ -318,14 +318,16 @@ def _verify_webhook_signature(body: bytes, signature: str) -> bool:
 
 @router.post("/pact/send")
 async def send_pact_message(
-    request: Dict[str, Any],
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Отправить сообщение через Pact API"""
     try:
-        client_id = request.get('client_id')
-        content = request.get('content')
-        content_type = request.get('content_type', 'text')
+        # Получаем JSON из тела запроса
+        body = await request.json()
+        client_id = body.get('client_id')
+        content = body.get('content')
+        content_type = body.get('content_type', 'text')
         
         if not client_id or not content:
             raise HTTPException(status_code=400, detail="Требуется client_id и content")
