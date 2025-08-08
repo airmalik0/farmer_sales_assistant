@@ -356,13 +356,15 @@ async def send_pact_message(
             raise HTTPException(status_code=500, detail="Не удалось отправить сообщение через Pact")
         
         # Создаем запись о сообщении в БД (API V2 возвращает объект message)
+        # API V2 возвращает структуру {"message": {...}}
+        message_obj = result.get('message', result)
         message_data = {
-            'id': result.get('id'),
+            'id': message_obj.get('id'),
             'conversation_id': client.pact_conversation_id,
-            'message': content,  # В API V2 поле называется message, не body
+            'message': content,  # В API V2 поле называется message
             'income': False,  # Исходящее сообщение
-            'status': result.get('status', 'sent'),
-            'contact_id': result.get('contact_id')
+            'status': message_obj.get('status', 'sent'),
+            'contact_id': message_obj.get('contact_id')
         }
         
         message = MessageService.create_message_from_pact(db, client_id, message_data)
@@ -379,7 +381,7 @@ async def send_pact_message(
         return {
             "success": True,
             "message_id": message.id,
-            "pact_message_id": result.get('id')
+            "pact_message_id": message_obj.get('id')
         }
         
     except HTTPException:

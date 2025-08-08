@@ -48,22 +48,24 @@ class PactService:
         replied_to_id: str = None,
         max_retries: int = 3
     ) -> Optional[Dict]:
-        """Отправка сообщения в conversation через Pact API"""
+        """Отправка сообщения в conversation через Pact API V2"""
         
         await PactService._wait_for_rate_limit()
         
-        url = f"{PactService.BASE_URL}/v1/companies/{PactService.COMPANY_ID}/messages"
+        # Используем правильный API V2 endpoint
+        url = f"{PactService.BASE_URL}/api/p2/conversations/{conversation_id}/messages"
         headers = {
             "X-Private-Api-Token": PactService.API_TOKEN,
             "Content-Type": "application/json"
         }
         
         payload = {
-            "conversation_id": conversation_id
+            "private_api_token": PactService.API_TOKEN,
+            "company_id": PactService.COMPANY_ID
         }
         
         if text:
-            payload["message"] = text
+            payload["text"] = text
         
         if attachment_ids:
             payload["attachment_ids"] = attachment_ids
