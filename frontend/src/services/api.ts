@@ -27,7 +27,7 @@ const api = axios.create({
 });
 
 export const clientsApi = {
-  getAll: () => api.get<Client[]>('/clients'),
+  getAll: () => api.get<Client[]>('/clients/'),
   getById: (id: number) => api.get<Client>(`/clients/${id}`),
   create: (client: Omit<Client, 'id' | 'created_at' | 'messages' | 'dossier'>) =>
     api.post<Client>('/clients', client),

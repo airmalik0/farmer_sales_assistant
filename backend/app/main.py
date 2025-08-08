@@ -11,7 +11,7 @@ from .models import Client, Message, MessageAttachment, Dossier, CarInterest, Ta
 from .api import api_router
 from .services.trigger_service import TriggerService
 from .services.task_service import TaskService
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # Настройка логирования для планировщика
 scheduler_logger = logging.getLogger("scheduler")
@@ -131,8 +131,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Проброс заголовков от reverse proxy (https scheme, real ip)
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+class SetForwardedProtoMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Если пришел от reverse-proxy, укажем корректную схему
+        forwarded_proto = request.headers.get("x-forwarded-proto")
+        if forwarded_proto:
+            request.scope["scheme"] = forwarded_proto
+        return await call_next(request)
+
+# Учитываем X-Forwarded-Proto от nginx (https)
+app.add_middleware(SetForwardedProtoMiddleware)
 
 # Настройка CORS
 app.add_middleware(
