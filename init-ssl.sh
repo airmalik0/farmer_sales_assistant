@@ -5,6 +5,8 @@
 set -e
 
 domains=(autodealer.quasar79.com)
+# Основной домен (первый из массива)
+primary_domain="${domains[0]}"
 rsa_key_size=4096
 data_path="./certbot"
 
@@ -17,7 +19,7 @@ else
 fi
 
 if [ -d "$data_path" ]; then
-  read -p "Существующие данные найдены для $domains. Продолжить и пересоздать? (y/N) " decision
+  read -p "Существующие данные найдены для ${domains[*]}. Продолжить и пересоздать? (y/N) " decision
   if [ "$decision" != "Y" ] && [ "$decision" != "y" ]; then
     exit
   fi
@@ -31,9 +33,9 @@ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/
   echo
 fi
 
-echo "### Создание dummy сертификата для $domains ..."
-path="/etc/letsencrypt/live/$domains"
-mkdir -p "$data_path/conf/live/$domains"
+echo "### Создание dummy сертификата для ${domains[*]} ..."
+path="/etc/letsencrypt/live/$primary_domain"
+mkdir -p "$data_path/conf/live/$primary_domain"
 docker-compose run --rm --entrypoint "\
   mkdir -p '$path' && \
   openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1\
@@ -46,14 +48,15 @@ echo "### Запуск nginx ..."
 docker-compose up --force-recreate -d nginx
 echo
 
-echo "### Удаление dummy сертификата для $domains ..."
+# Полная очистка любых старых линейджей (и с суффиксами -000*)
+echo "### Удаление dummy сертификата для ${domains[*]} ..."
 docker-compose run --rm --entrypoint "\
-  rm -Rf /etc/letsencrypt/live/$domains && \
-  rm -Rf /etc/letsencrypt/archive/$domains && \
-  rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
+  sh -lc 'rm -Rf /etc/letsencrypt/live/$primary_domain /etc/letsencrypt/live/${primary_domain}-* && \
+          rm -Rf /etc/letsencrypt/archive/$primary_domain /etc/letsencrypt/archive/${primary_domain}-* && \
+          rm -f  /etc/letsencrypt/renewal/$primary_domain.conf /etc/letsencrypt/renewal/${primary_domain}-*.conf'" certbot
 echo
 
-echo "### Запрос Let's Encrypt сертификата для $domains ..."
+echo "### Запрос Let's Encrypt сертификата для ${domains[*]} ..."
 # Присоединение к существующей сети nginx
 domain_args=""
 for domain in "${domains[@]}"; do
@@ -71,6 +74,7 @@ esac
 
 docker-compose run --rm --entrypoint "\
   certbot certonly --webroot -w /var/www/certbot \
+    --cert-name $primary_domain \
     $email_arg \
     $domain_args \
     --rsa-key-size $rsa_key_size \
