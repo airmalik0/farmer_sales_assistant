@@ -3,7 +3,21 @@ import { Client, Message, Dossier, CarInterest, Task, DossierManualUpdate, CarIn
 
 // В development используем относительный путь через Vite proxy
 // В production можно использовать переменную окружения
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
+// Защита от mixed content: если страница открыта по HTTPS, а базовый URL начинается с http://,
+// принудительно используем текущий https-домен с относительным путём API
+try {
+  if (typeof window !== 'undefined') {
+    const isHttps = window.location.protocol === 'https:';
+    if (isHttps && /^http:\/\//i.test(API_BASE_URL)) {
+      const parsed = new URL(API_BASE_URL);
+      API_BASE_URL = `${window.location.origin}${parsed.pathname}`;
+    }
+  }
+} catch (_) {
+  // noop
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
