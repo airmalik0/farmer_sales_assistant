@@ -15,6 +15,7 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }: UseWebSocke
   const reconnectAttemptsRef = useRef(0);
   const isReconnectingRef = useRef(false);
   const isMountedRef = useRef(false);
+  const hasConnectedRef = useRef(false);
   
   const maxReconnectAttempts = 10;
   const baseReconnectDelay = 1000; // 1 секунда
@@ -22,13 +23,15 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }: UseWebSocke
   const connectWebSocket = useCallback(() => {
     if (!isMountedRef.current) return;
     
-    if (isReconnectingRef.current && wsRef.current?.readyState === WebSocket.CONNECTING) {
-      return; // Уже подключаемся
+    // Если уже есть активное подключение - не создаем новое
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      console.log('WebSocket: Подключение уже активно, пропускаем');
+      return;
     }
-
-    // Закрываем существующее соединение если есть
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close(1000, 'Reconnecting');
+    
+    if (isReconnectingRef.current) {
+      console.log('WebSocket: Уже идет процесс переподключения, пропускаем');
+      return;
     }
 
     isReconnectingRef.current = true;
@@ -156,10 +159,16 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }: UseWebSocke
 
   useEffect(() => {
     isMountedRef.current = true;
-    connectWebSocket();
+    
+    // Подключаемся только один раз
+    if (!hasConnectedRef.current) {
+      hasConnectedRef.current = true;
+      connectWebSocket();
+    }
 
     return () => {
       isMountedRef.current = false;
+      hasConnectedRef.current = false;
       
       // Отменяем таймер переподключения
       if (reconnectTimeoutRef.current) {
@@ -179,7 +188,7 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }: UseWebSocke
         wsRef.current = null;
       }
     };
-  }, [connectWebSocket]);
+  }, []); // Убираем зависимость от connectWebSocket
 
   const sendMessage = (message: any) => {
     if (wsRef.current && isConnected) {

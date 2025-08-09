@@ -55,13 +55,15 @@ class PactService:
         # Используем правильный API V2 endpoint
         url = f"{PactService.BASE_URL}/api/p2/conversations/{conversation_id}/messages"
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            # Добавляем токен и в заголовок тоже для надежности
+            "X-Private-Api-Token": PactService.API_TOKEN
         }
         
-        # Для API V2 передаем токен в теле запроса, не в заголовке
+        # Для API V2 передаем токен и company_id в теле запроса
         payload = {
             "private_api_token": PactService.API_TOKEN,
-            "company_id": PactService.COMPANY_ID
+            "company_id": int(PactService.COMPANY_ID)  # Убедимся что это число
         }
         
         if text:
@@ -73,14 +75,25 @@ class PactService:
         if replied_to_id:
             payload["replied_to_id"] = replied_to_id
         
+        logger.info(f"Отправка сообщения в Pact conversation {conversation_id}, company_id: {PactService.COMPANY_ID}")
+        
         for attempt in range(max_retries):
             try:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(url, headers=headers, json=payload)
                     
                     if response.status_code == 200:
-                        logger.info(f"Сообщение отправлено в conversation {conversation_id}")
+                        logger.info(f"Сообщение успешно отправлено в conversation {conversation_id}")
                         return response.json()
+                    elif response.status_code == 403:
+                        logger.error(f"Ошибка авторизации (403): {response.text}")
+                        logger.error(f"Используемый company_id: {PactService.COMPANY_ID}, conversation_id: {conversation_id}")
+                        # Не повторяем при 403, это проблема с правами
+                        break
+                    elif response.status_code == 429:
+                        # Rate limit - ждем дольше
+                        logger.warning(f"Rate limit достигнут, ждем...")
+                        await asyncio.sleep(30)
                     else:
                         logger.error(f"Ошибка отправки сообщения: {response.status_code} - {response.text}")
                         
