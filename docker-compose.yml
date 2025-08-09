@@ -7,30 +7,27 @@ services:
       POSTGRES_DB: farmer_crm
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: farmer_postgres_password
-    ports:
-      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - farmer_network
     restart: unless-stopped
+    # Порт убран - доступ только внутри сети
 
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:farmer_postgres_password@postgres:5432/farmer_crm
     env_file:
       - .env
     depends_on:
       - postgres
-    volumes:
-      - ./backend:/app
     networks:
       - farmer_network
     restart: unless-stopped
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Используем CMD из Dockerfile (без --reload)
+    # Порт убран - доступ только через nginx
+    # Volumes с кодом убраны
 
   bot:
     build: ./bot
@@ -41,20 +38,17 @@ services:
       - .env
     depends_on:
       - backend
-    volumes:
-      - ./bot:/app
     networks:
       - farmer_network
     restart: unless-stopped
-    command: python main.py
+    # Используем CMD из Dockerfile
+    # Volumes с кодом убраны
 
   frontend:
     build: 
       context: ./frontend
       args:
         VITE_API_BASE_URL: /api/v1
-    ports:
-      - "3000:3000"
     volumes:
       - frontend_dist:/app/dist
     depends_on:
@@ -62,6 +56,7 @@ services:
     networks:
       - farmer_network
     restart: unless-stopped
+    # Порт убран - доступ только через nginx
 
   nginx:
     image: nginx:alpine
@@ -69,9 +64,9 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx:/etc/nginx/conf.d
-      - ./nginx/certbot/conf:/etc/letsencrypt
-      - ./nginx/certbot/www:/var/www/certbot
+      - ./nginx:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
       - frontend_dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
