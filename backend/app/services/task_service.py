@@ -223,9 +223,11 @@ class TaskService:
             try:
                 client = ClientService.get_client(db, task.client_id)
                 if client:
-                    success = await TelegramAdminService.send_task_reminder_to_farmer(task, client)
-                    if success:
-                        sent_count += 1
+                    # TODO: Реализовать метод send_task_reminder_to_farmer в TelegramAdminService
+                    # success = await TelegramAdminService.send_task_reminder_to_farmer(task, client)
+                    # if success:
+                    #     sent_count += 1
+                    logger.debug(f"Напоминание о задаче {task.id} пропущено (метод не реализован)")
                         
             except Exception as e:
                 logger.error(f"Ошибка отправки напоминания о задаче {task.id}: {e}")
