@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Calendar, MessageCircle, FileText, Edit2, Check, X, Shield, ShieldCheck, Phone, MapPin, Cake, UserCheck, FileTextIcon, Car, CheckSquare, Plus, Building, Users, Briefcase } from 'lucide-react';
+import { User, Calendar, MessageCircle, FileText, Edit2, Check, X, Shield, ShieldCheck, Phone, MapPin, Cake, UserCheck, FileTextIcon, Car, CheckSquare, Plus, Building, Briefcase } from 'lucide-react';
 import { Client, DossierField, CarQuery, Task, Dossier, CarInterest, Message, Trigger } from '../types';
 import { getClientDisplayName, getClientContact, getProviderIcon, getProviderName, getProviderColor, formatDate } from '../utils';
 import { clientsApi, tasksApi } from '../services/api';
@@ -38,20 +38,7 @@ interface ClientCardProps {
 
 export const ClientCard = ({ 
   client,
-  onClientUpdate,
-  dossier,
-  carInterest,
-  tasks,
-  messages,
-  triggers,
-  onDossierUpdate,
-  onCarInterestUpdate,
-  onTaskUpdate,
-  onTaskDelete,
-  onMessageSent,
-  onTriggerCreated,
-  onTriggerUpdated,
-  onBroadcastSent 
+  onClientUpdate
 }: ClientCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');

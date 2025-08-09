@@ -1,5 +1,5 @@
 import { Download, FileText, Image, Mic, Video } from 'lucide-react';
-import { MediaFile, getMediaUrl } from '../utils';
+import { MediaFile } from '../types';
 
 interface MediaMessageProps {
   media: MediaFile;
@@ -7,7 +7,8 @@ interface MediaMessageProps {
 }
 
 export const MediaMessage = ({ media, className = '' }: MediaMessageProps) => {
-  const mediaUrl = getMediaUrl(media.fileId);
+  // Формируем URL для медиафайла
+  const mediaUrl = `/api/v1/media/${media.fileId}`;
 
   const renderMediaContent = () => {
     switch (media.type) {

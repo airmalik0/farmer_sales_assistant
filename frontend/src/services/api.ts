@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Client, Message, Dossier, CarInterest, Task, DossierManualUpdate, CarInterestManualUpdate, TaskManualUpdate, AdminStats, PactMessageSend } from '../types';
+import { Client, Message, Dossier, CarInterest, Task, DossierManualUpdate, CarInterestManualUpdate, TaskManualUpdate, AdminStats } from '../types';
 
 // В development используем относительный путь через Vite proxy
 // В production можно использовать переменную окружения

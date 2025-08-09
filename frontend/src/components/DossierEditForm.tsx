@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Edit2, Save, X, User, Phone, MapPin, Cake, UserCheck, FileTextIcon, Building, Briefcase } from 'lucide-react';
+import { Edit2, Save, X, User, Phone, MapPin, Cake, UserCheck, Building, Briefcase } from 'lucide-react';
 import { Client, DossierManualUpdate } from '../types';
 import { dossierApi } from '../services/api';
 
