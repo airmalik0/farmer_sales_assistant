@@ -301,7 +301,7 @@ export const ClientCard = ({
 
   // Функция для получения задач клиента
   const getTasks = (): Task[] => {
-    return tasks || client?.tasks || [];
+    return client?.tasks || [];
   };
 
   // Функция для форматирования приоритета задачи
