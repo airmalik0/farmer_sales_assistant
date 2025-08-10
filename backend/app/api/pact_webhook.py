@@ -31,7 +31,12 @@ async def handle_pact_webhook(
         body = await request.body()
         webhook_data = json.loads(body.decode())
         
-        logger.info(f"Получен Pact webhook: {webhook_data}")
+        # Детальное логирование для отладки
+        logger.info(f"Получен Pact webhook type={webhook_data.get('type')}, event={webhook_data.get('event')}")
+        if webhook_data.get('type') == 'conversation':
+            conv_data = webhook_data.get('object') or webhook_data.get('data')
+            logger.info(f"Conversation webhook data: id={conv_data.get('id') if conv_data else 'N/A'}")
+        logger.info(f"Полный webhook: {webhook_data}")
         
         # Проверяем подпись только если секрет настроен
         if settings.pact_webhook_secret:
@@ -342,6 +347,8 @@ async def send_pact_message(
                 status_code=400, 
                 detail="У клиента нет pact_conversation_id. Возможно клиент создан не через Pact"
             )
+        
+        logger.info(f"Отправка сообщения клиенту {client_id} с conversation_id={client.pact_conversation_id}")
         
         # Импортируем здесь чтобы избежать циклических импортов
         from ..services.pact_service import PactService

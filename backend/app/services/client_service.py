@@ -59,7 +59,11 @@ class ClientService:
         import logging
         logger = logging.getLogger(__name__)
         
-        logger.info(f"Создание клиента из данных: {conversation_data}")
+        logger.info(f"Создание клиента из данных conversation: {conversation_data}")
+        
+        # ВАЖНО: проверяем структуру данных
+        conversation_id = conversation_data.get("id")
+        logger.info(f"Извлеченный conversation_id для создания клиента: {conversation_id}")
         
         # Реальная структура Pact webhook использует прямые поля в объекте
         # conversation_id приходит как 'id' в объекте

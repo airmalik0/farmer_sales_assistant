@@ -33,11 +33,11 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     
     # Pact API V2
-    pact_api_token: str = ""
-    pact_company_id: int = 0  # Опционально - можно получить из webhook'ов
-    pact_api_url: str = "https://api.pact.im"
-    pact_webhook_secret: str = ""  # Опционально - может отсутствовать
-    pact_webhook_url: str = ""  # Единый URL для всех webhook типов
+    pact_api_token: str = os.getenv("PACT_API_TOKEN", "")
+    pact_company_id: int = int(os.getenv("PACT_COMPANY_ID", "0"))
+    pact_api_url: str = os.getenv("PACT_API_URL", "https://api.pact.im")
+    pact_webhook_secret: str = os.getenv("PACT_WEBHOOK_SECRET", "")  # Опционально - может отсутствовать
+    pact_webhook_url: str = os.getenv("PACT_WEBHOOK_URL", "")  # Единый URL для всех webhook типов
 
     class Config:
         env_file = ".env"

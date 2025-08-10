@@ -56,15 +56,20 @@ class PactService:
         url = f"{PactService.BASE_URL}/api/p2/conversations/{conversation_id}/messages"
         headers = {
             "Content-Type": "application/json",
-            # Добавляем токен и в заголовок тоже для надежности
             "X-Private-Api-Token": PactService.API_TOKEN
         }
         
-        # Для API V2 передаем токен и company_id в теле запроса
+        # Для API V2 передаем company_id в теле запроса
+        # Токен передается ТОЛЬКО через заголовок X-Private-Api-Token
         payload = {
-            "private_api_token": PactService.API_TOKEN,
             "company_id": int(PactService.COMPANY_ID)  # Убедимся что это число
         }
+        
+        # Детальное логирование для отладки
+        logger.info(f"Sending to URL: {url}")
+        logger.info(f"Using API Token: {PactService.API_TOKEN[:20]}... (first 20 chars)")
+        logger.info(f"Using Company ID: {PactService.COMPANY_ID}")
+        logger.debug(f"Full payload before text: {payload}")
         
         if text:
             payload["text"] = text
@@ -75,7 +80,8 @@ class PactService:
         if replied_to_id:
             payload["replied_to_id"] = replied_to_id
         
-        logger.info(f"Отправка сообщения в Pact conversation {conversation_id}, company_id: {PactService.COMPANY_ID}")
+        logger.info(f"Отправка сообщения в Pact conversation {conversation_id}")
+        logger.info(f"Final payload: {payload}")
         
         for attempt in range(max_retries):
             try:
